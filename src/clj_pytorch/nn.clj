@@ -20,58 +20,74 @@
 
 ;; Internal helpers
 (defn- kw->str [k]
-  ;; :my-layer -> "my_layer"  (PyTorch attr names use underscores)
   (-> (name k) (clojure.string/replace "-" "_")))
+
+;; ---------------------------------------------------------------------------
+;; Module wrapper — makes any nn.Module callable as a Clojure fn
+;; ---------------------------------------------------------------------------
+
+(deftype Module [py-module]
+  clojure.lang.IFn
+  (invoke [_]               (py/call-attr py-module "__call__"))
+  (invoke [_ a]             (py/call-attr py-module "__call__" a))
+  (invoke [_ a b]           (py/call-attr py-module "__call__" a b))
+  (invoke [_ a b c]         (py/call-attr py-module "__call__" a b c))
+  (invoke [_ a b c d]       (py/call-attr py-module "__call__" a b c d))
+  (applyTo [_ args]         (apply py/call-attr py-module "__call__" args)))
+
+(defn- ->py
+  "Unwrap a Module to its underlying Python object, or pass through."
+  [m]
+  (if (instance? Module m) (.py-module m) m))
 
 ;; Module call / attribute access
 (defn call
   "Call a module or any Python callable — equivalent to module(args) in Python.
    Always goes through __call__ so forward hooks fire."
   [module & args]
-  (apply py/call-attr module "__call__" args))
+  (apply py/call-attr (->py module) "__call__" args))
 
 (defn get-layer
   "Get a registered submodule / attribute from self by keyword.
    :my-layer -> self.my_layer"
   [self kw]
-  (py/get-attr self (kw->str kw)))
+  (->Module (py/get-attr (->py self) (kw->str kw))))
 
 (defn set-layer!
   "Register a submodule on self by keyword.
    :my-layer -> self.my_layer = layer"
   [self kw layer]
-  (py/set-attr! self (kw->str kw) layer))
+  (py/set-attr! (->py self) (kw->str kw) layer))
 
 (defn register-buffer!
-  "Register a non-parameter tensor buffer on self.
-   Equivalent to self.register_buffer(name, tensor, persistent=persistent)"
+  "Register a non-parameter tensor buffer on self."
   [self attr-name tensor & {:keys [persistent] :or {persistent true}}]
-  (py. self register_buffer (kw->str attr-name) tensor :persistent persistent))
+  (py. (->py self) register_buffer (kw->str attr-name) tensor :persistent persistent))
 
 (defn parameters
   "Returns an iterator over module parameters — pass to an optimizer."
   [module]
-  (py. module parameters))
+  (py. (->py module) parameters))
 
 (defn train!
   "Set module to training mode."
   [module]
-  (py. module train)
+  (py. (->py module) train)
   module)
 
 (defn eval!
   "Set module to eval mode."
   [module]
-  (py. module eval)
+  (py. (->py module) eval)
   module)
 
-(defn state-dict [module]       (py. module state_dict))
-(defn load-state-dict! [module sd] (py. module load_state_dict sd))
+(defn state-dict      [module]       (py. (->py module) state_dict))
+(defn load-state-dict! [module sd]   (py. (->py module) load_state_dict sd))
 
 (defn training?
   "Returns true if module is in training mode."
   [module]
-  (py.- module training))
+  (py.- (->py module) training))
 
 ;; defmodule macro
 ;; Usage:
@@ -114,7 +130,7 @@
                 nil))
              "forward"
              (py/make-callable ~forward)})]
-       (call cls#))))
+       (->Module (call cls#)))))
 
 ;; Layer constructors
 (defn linear

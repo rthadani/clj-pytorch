@@ -29,9 +29,9 @@ The `defmodule` macro is the main thing here that's non-obvious. It wraps `py/cr
            :fc2  (nn/linear hidden out-features)}
   :forward (fn [self x]
              (-> x
-                 (->> (nn/call (nn/get-layer self :fc1)))
-                 (->> (nn/call (nn/get-layer self :act)))
-                 (->> (nn/call (nn/get-layer self :fc2))))))
+                 ((nn/get-layer self :fc1))
+                 ((nn/get-layer self :act))
+                 ((nn/get-layer self :fc2)))))
 
 ;; MLP is now a regular constructor fn
 (def model (MLP 128 256 10))
@@ -45,10 +45,12 @@ The `defmodule` macro is the main thing here that's non-obvious. It wraps `py/cr
 - `:forward` — fn of `[self & inputs]`, becomes the module's `forward` method
 - `:init` — optional fn of `[self]` for extra setup (buffers, etc.)
 
-To call a module always use `nn/call` rather than calling it directly — this goes through `__call__` so forward hooks fire:
+Modules defined with `defmodule` implement `clojure.lang.IFn`, so you can call them directly like a function — no need for `nn/call` at the call site:
 
 ```clojure
-(nn/call model x)
+(model x)           ;; equivalent to (nn/call model x)
+(nn/train! model)   ;; all nn/ helpers still work transparently
+(optim/adam model)  ;; passes through to the underlying Python module
 ```
 
 To access a sublayer inside `forward`:
