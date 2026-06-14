@@ -1,0 +1,74 @@
+(ns clj-pytorch.nn-test
+  (:require [clojure.test :refer :all]
+            [clj-pytorch.nn        :as nn]
+            [clj-pytorch.functional :as f]
+            [clj-pytorch.tensor    :as tensor]))
+
+(deftest layer-constructors
+  (testing "linear layer has parameters"
+    (let [layer (nn/linear 4 8)]
+      (is (some? layer))
+      (is (some? (nn/parameters layer)))))
+  (testing "conv2d"
+    (is (some? (nn/conv2d 1 4 3))))
+  (testing "conv1d"
+    (is (some? (nn/conv1d 1 4 3))))
+  (testing "embedding"
+    (is (some? (nn/embedding 10 16))))
+  (testing "layer-norm"
+    (is (some? (nn/layer-norm [8]))))
+  (testing "batch-norm1d"
+    (is (some? (nn/batch-norm1d 8))))
+  (testing "batch-norm2d"
+    (is (some? (nn/batch-norm2d 8)))))
+
+(deftest activation-modules
+  (testing "relu module"   (is (some? (nn/relu))))
+  (testing "gelu module"   (is (some? (nn/gelu))))
+  (testing "sigmoid module" (is (some? (nn/sigmoid))))
+  (testing "silu module"   (is (some? (nn/silu)))))
+
+(deftest dropout-modules
+  (testing "dropout"   (is (some? (nn/dropout 0.5))))
+  (testing "dropout2d" (is (some? (nn/dropout2d 0.5)))))
+
+(deftest container-modules
+  (testing "sequential"
+    (let [net (nn/sequential (nn/linear 4 8) (nn/relu))]
+      (is (some? net))))
+  (testing "module-list"
+    (is (some? (nn/module-list [(nn/linear 4 8) (nn/linear 8 4)])))))
+
+(deftest loss-functions
+  (testing "cross-entropy-loss" (is (some? (nn/cross-entropy-loss))))
+  (testing "mse-loss"           (is (some? (nn/mse-loss))))
+  (testing "bce-with-logits"    (is (some? (nn/bce-with-logits)))))
+
+(deftest call-and-forward
+  (testing "call linear with input"
+    (let [layer (nn/linear 4 8)
+          x     (tensor/->tensor [[1.0 2.0 3.0 4.0]])]
+      (is (= [1 8] (f/shape (nn/call layer x))))))
+  (testing "call sequential"
+    (let [net (nn/sequential (nn/linear 4 8) (nn/relu))
+          x   (tensor/->tensor [[1.0 2.0 3.0 4.0]])]
+      (is (= [1 8] (f/shape (nn/call net x)))))))
+
+(deftest train-eval-mode
+  (let [layer (nn/linear 4 8)]
+    (testing "starts in training mode"
+      (is (true? (boolean (nn/training? layer)))))
+    (testing "eval! switches to eval mode"
+      (nn/eval! layer)
+      (is (false? (boolean (nn/training? layer)))))
+    (testing "train! switches back"
+      (nn/train! layer)
+      (is (true? (boolean (nn/training? layer)))))))
+
+(deftest state-dict-roundtrip
+  (testing "state-dict and load-state-dict!"
+    (let [layer1 (nn/linear 4 8)
+          layer2 (nn/linear 4 8)
+          sd     (nn/state-dict layer1)]
+      (nn/load-state-dict! layer2 sd)
+      (is (some? sd)))))
