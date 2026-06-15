@@ -5,18 +5,28 @@
     defmodule  — define an nn.Module subclass in idiomatic Clojure
     call       — invoke a module (goes through __call__, fires hooks)
     get-layer  — retrieve a registered submodule from self by keyword
+    module?    — check if an object is an nn.Module instance
 
   Layer constructors:
     linear, conv2d, conv1d, embedding, layer-norm, batch-norm,
     dropout, relu, gelu, sigmoid, tanh, sequential, module-list
 
   Container helpers:
-    module-list-seq — iterate a registered ModuleList as a Clojure seq"
+    module-list-seq     — iterate a registered ModuleList as a Clojure seq
+    expand-sequential-output — grow a Sequential's final Linear layer
 
-  (:require [libpython-clj2.python  :refer [py. py.-] :as py]
-            [libpython-clj2.require :refer [require-python]]))
+  Loss functions:
+    cross-entropy-loss, mse-loss, bce-loss, bce-with-logits, focal-loss"
 
-(require-python '[torch.nn :as nn])
+  (:require [libpython-clj2.python  :refer [py. py.- py..] :as py]
+            [libpython-clj2.require :refer [require-python]]
+            [clj-pytorch.tensor    :as t]
+            [clj-pytorch.functional :as f]
+            [clj-pytorch.context   :as ctx]))
+
+(require-python '[torch.nn :as nn]
+                '[torch.nn.functional :as F]
+                '[builtins :as builtins])
 
 ;; Internal helpers
 (defn- kw->str [k]
@@ -39,6 +49,14 @@
   "Unwrap a Module to its underlying Python object, or pass through."
   [m]
   (if (instance? Module m) (.py-module m) m))
+
+(defn module?
+  "Returns true if obj is a PyTorch nn.Module instance."
+  [obj]
+  (try
+    (when (and obj (not (map? obj)))
+      (builtins/isinstance (->py obj) nn/Module))
+    (catch Exception _ false)))
 
 ;; Module call / attribute access
 (defn call
@@ -219,3 +237,46 @@
 (defn mse-loss           [] (nn/MSELoss))
 (defn bce-loss           [] (nn/BCELoss))
 (defn bce-with-logits    [] (nn/BCEWithLogitsLoss))
+
+(defmodule FocalLoss [gamma ignore-index]
+  :layers {}
+  :forward (fn [self logits targets]
+             (let [ce-loss      (F/cross_entropy logits targets :reduction "none" :ignore_index ignore-index)
+                   probs        (F/softmax logits :dim 1)
+                   safe-targets (py. targets masked_fill (py. targets eq ignore-index) 0)
+                   targets-exp  (py. safe-targets unsqueeze 1)
+                   p-t          (py.. probs (gather 1 targets-exp) (squeeze 1))
+                   focal-weight (py.. (py. p-t neg) (add 1) (pow gamma))
+                   weighted     (py. ce-loss mul focal-weight)
+                   mask         (py. targets ne ignore-index)
+                   num-valid    (py.. mask sum (clamp :min 1))]
+               (py.. weighted sum (div num-valid)))))
+
+(defn focal-loss
+  "Create a FocalLoss module."
+  [& {:keys [gamma ignore-index] :or {gamma 2.0 ignore-index -100}}]
+  (FocalLoss gamma ignore-index))
+
+;; Utilities
+(defn expand-sequential-output
+  "Expand the output size of a Sequential's final Linear layer, copying
+   existing weights into the new layer. New class neurons initialise randomly."
+  [seq-module new-out-features]
+  (let [device   (t/best-device)
+        modules  (vec (py/as-jvm (py. (->py seq-module) children) :iterable? true))
+        last-mod (last modules)]
+    (if-not (builtins/isinstance last-mod nn/Linear)
+      (throw (ex-info "Last layer of Sequential is not Linear"
+                      {:last-layer-type (str (type last-mod))}))
+      (let [in-features (py.- last-mod in_features)
+            old-out     (py.- last-mod out_features)
+            new-linear  (f/to-device (nn/Linear in-features new-out-features) device)
+            new-modules (conj (vec (butlast modules)) new-linear)
+            _           (ctx/no-grad
+                          (let [old-w (py.- last-mod weight)
+                                old-b (py.- last-mod bias)
+                                new-w (py.- new-linear weight)
+                                new-b (py.- new-linear bias)]
+                            (py. (py/get-item new-w (builtins/slice 0 old-out)) copy_ old-w)
+                            (py. (py/get-item new-b (builtins/slice 0 old-out)) copy_ old-b)))]
+        (f/to-device (apply sequential new-modules) device)))))
