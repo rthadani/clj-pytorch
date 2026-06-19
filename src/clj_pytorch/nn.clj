@@ -30,10 +30,10 @@
 
 ;; require-python :as creates a namespace alias, not a Clojure var, so `nn`
 ;; can't be resolved in syntax-quote. Cache torch.nn.Module as a real var.
-(def ^:private -nn-Module nn/Module)
+(def -nn-Module nn/Module)
 
 ;; Internal helpers
-(defn- kw->str [k]
+(defn kw->str [k]
   (-> (name k) (clojure.string/replace "-" "_")))
 
 ;; ---------------------------------------------------------------------------
@@ -144,7 +144,7 @@
             {"__init__"
              (py/make-callable
               (fn [self#]
-                (py. clj-pytorch.nn/-nn-Module __init__ self#)
+                (py/call-attr clj-pytorch.nn/-nn-Module "__init__" self#)
                 (doseq [[k# v#] layer-map#]
                   (py/set-attr! self# (kw->str k#) v#))
                 (when extra-init#
