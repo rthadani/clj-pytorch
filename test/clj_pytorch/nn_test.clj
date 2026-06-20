@@ -65,6 +65,28 @@
       (nn/train! layer)
       (is (true? (boolean (nn/training? layer)))))))
 
+(nn/defmodule TwoLayerNet [in-features hidden out-features]
+  :layers {:fc1  (nn/linear in-features hidden)
+           :relu (nn/relu)
+           :fc2  (nn/linear hidden out-features)}
+  :forward (fn [self x]
+             (-> x
+                 ((nn/get-layer self :fc1))
+                 ((nn/get-layer self :relu))
+                 ((nn/get-layer self :fc2)))))
+
+(deftest custom-module
+  (testing "defmodule creates an nn.Module"
+    (let [net (TwoLayerNet 4 8 2)]
+      (is (nn/module? net))))
+  (testing "custom module forward pass produces correct output shape"
+    (let [net (TwoLayerNet 4 8 2)
+          x   (tensor/->tensor [[1.0 2.0 3.0 4.0]])]
+      (is (= [1 2] (f/shape (net x))))))
+  (testing "custom module has parameters"
+    (let [net (TwoLayerNet 4 8 2)]
+      (is (some? (nn/parameters net))))))
+
 (deftest state-dict-roundtrip
   (testing "state-dict and load-state-dict!"
     (let [layer1 (nn/linear 4 8)

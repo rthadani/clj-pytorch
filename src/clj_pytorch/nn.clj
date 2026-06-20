@@ -142,7 +142,7 @@
             ~(name sym)
             [clj-pytorch.nn/-nn-Module]
             {"__init__"
-             (py/make-callable
+             (py/make-instance-fn
               (fn [self#]
                 (py/call-attr clj-pytorch.nn/-nn-Module "__init__" self#)
                 (doseq [[k# v#] layer-map#]
@@ -151,8 +151,8 @@
                   (extra-init# self#))
                 nil))
              "forward"
-             (py/make-callable ~forward)})]
-       (->Module (call cls#)))))
+             (py/make-instance-fn ~forward)})]
+       (->Module (cls#)))))
 
 ;; Layer constructors
 (defn linear
