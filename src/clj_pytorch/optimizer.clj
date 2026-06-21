@@ -29,8 +29,7 @@
 
 ;; Optimiser constructors
 (defn adam
-  "Adam optimiser.
-   (adam model :lr 1e-3 :betas [0.9 0.999] :eps 1e-8 :wd 0)"
+  "Usage (adam model :lr 1e-3 :betas [0.9 0.999] :eps 1e-8 :wd 0)"
   [model & {:keys [lr betas eps wd]
             :or   {lr 1e-3 betas [0.9 0.999] eps 1e-8 wd 0}}]
   (->TorchOptimizer
@@ -38,7 +37,6 @@
                :lr lr :betas betas :eps eps :weight_decay wd)))
 
 (defn adamw
-  "AdamW optimiser (Adam with decoupled weight decay)."
   [model & {:keys [lr betas eps wd]
             :or   {lr 1e-3 betas [0.9 0.999] eps 1e-8 wd 1e-2}}]
   (->TorchOptimizer
@@ -46,7 +44,6 @@
                 :lr lr :betas betas :eps eps :weight_decay wd)))
 
 (defn sgd
-  "SGD optimiser."
   [model & {:keys [lr momentum wd nesterov]
             :or   {lr 0.01 momentum 0.9 wd 0 nesterov false}}]
   (->TorchOptimizer
@@ -55,7 +52,6 @@
               :weight_decay wd :nesterov nesterov)))
 
 (defn rmsprop
-  "RMSProp optimiser."
   [model & {:keys [lr alpha eps wd momentum]
             :or   {lr 1e-2 alpha 0.99 eps 1e-8 wd 0 momentum 0}}]
   (->TorchOptimizer
@@ -70,7 +66,6 @@
   (lr-scheduler/StepLR (:opt optimizer) :step_size step-size :gamma gamma))
 
 (defn cosine-annealing-lr
-  "CosineAnnealingLR."
   [optimizer t-max & {:keys [eta-min] :or {eta-min 0}}]
   (lr-scheduler/CosineAnnealingLR (:opt optimizer) :T_max t-max :eta_min eta-min))
 

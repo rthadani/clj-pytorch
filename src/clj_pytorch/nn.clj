@@ -35,19 +35,32 @@
 ;; Internal helpers
 (defn kw->str [k]
   (-> (name k) (clojure.string/replace "-" "_")))
-
-;; ---------------------------------------------------------------------------
 ;; Module wrapper — makes any nn.Module callable as a Clojure fn
-;; ---------------------------------------------------------------------------
-
 (deftype Module [py-module]
   clojure.lang.IFn
-  (invoke [_]               (py/call-attr py-module "__call__"))
-  (invoke [_ a]             (py/call-attr py-module "__call__" a))
-  (invoke [_ a b]           (py/call-attr py-module "__call__" a b))
-  (invoke [_ a b c]         (py/call-attr py-module "__call__" a b c))
-  (invoke [_ a b c d]       (py/call-attr py-module "__call__" a b c d))
-  (applyTo [_ args]         (apply py/call-attr py-module "__call__" args)))
+  (invoke [_]                        (py/call-attr py-module "__call__"))
+  (invoke [_ a]                      (py/call-attr py-module "__call__" a))
+  (invoke [_ a b]                    (py/call-attr py-module "__call__" a b))
+  (invoke [_ a b c]                  (py/call-attr py-module "__call__" a b c))
+  (invoke [_ a b c d]                (py/call-attr py-module "__call__" a b c d))
+  (invoke [_ a b c d e]              (py/call-attr py-module "__call__" a b c d e))
+  (invoke [_ a b c d e f]            (py/call-attr py-module "__call__" a b c d e f))
+  (invoke [_ a b c d e f g]          (py/call-attr py-module "__call__" a b c d e f g))
+  (invoke [_ a b c d e f g h]        (py/call-attr py-module "__call__" a b c d e f g h))
+  (invoke [_ a b c d e f g h i]      (py/call-attr py-module "__call__" a b c d e f g h i))
+  (invoke [_ a b c d e f g h i j]    (py/call-attr py-module "__call__" a b c d e f g h i j))
+  (invoke [_ a b c d e f g h i j k]  (py/call-attr py-module "__call__" a b c d e f g h i j k))
+  (invoke [_ a b c d e f g h i j k l]
+    (py/call-attr py-module "__call__" a b c d e f g h i j k l))
+  (invoke [_ a b c d e f g h i j k l m]
+    (py/call-attr py-module "__call__" a b c d e f g h i j k l m))
+  (invoke [_ a b c d e f g h i j k l m n]
+    (py/call-attr py-module "__call__" a b c d e f g h i j k l m n))
+  (invoke [_ a b c d e f g h i j k l m n o]
+    (py/call-attr py-module "__call__" a b c d e f g h i j k l m n o))
+  (invoke [_ a b c d e f g h i j k l m n o p]
+    (py/call-attr py-module "__call__" a b c d e f g h i j k l m n o p))
+  (applyTo [_ args]                  (apply py/call-attr py-module "__call__" args)))
 
 (defn- ->py
   "Unwrap a Module to its underlying Python object, or pass through."
