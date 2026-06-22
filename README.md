@@ -4,6 +4,8 @@ A Clojure wrapper around PyTorch via [libpython-clj](https://github.com/clj-pyth
 
 Requires a Python environment with PyTorch installed and libpython-clj pointing at it. Tested with `torch 2.9.1+cu130`, `torchaudio 2.9.1+cu130`, and `torchvision 0.24.1+cu130`.
 
+[![Clojars Project](https://img.shields.io/clojars/v/io.github.rthadani/clj-pytorch.svg)](https://clojars.org/io.github.rthadani/clj-pytorch)
+
 ## What's in here
 
 - `clj-pytorch.tensor` — create tensors, convert to/from Clojure, device helpers

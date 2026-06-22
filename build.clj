@@ -3,8 +3,8 @@
   (:require [clojure.tools.deps :as t]
             [clojure.tools.build.api :as b]))
 
-(def lib 'net.clojars.clj-pytorch/clj-pytorch)
-(def version "0.1.0-SNAPSHOT")
+(def lib 'io.github.rthadani/clj-pytorch)
+(def version "0.1.0")
 (def class-dir "target/classes")
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
 
@@ -44,3 +44,12 @@
   (test opts)
   (b/delete {:path "target"})
   (jar opts))
+
+(defn deploy "Deploy to Clojars." [opts]
+    (jar opts)
+    ((requiring-resolve 'deps-deploy.deps-deploy/deploy)
+     {:installer :remote
+      :artifact  jar-file
+      :pom-file  (b/pom-path {:lib lib :class-dir class-dir})}) 
+    opts)
+
