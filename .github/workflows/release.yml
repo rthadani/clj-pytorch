@@ -12,12 +12,10 @@ jobs:
         with: 
           distribution: temurin
           java-version: 21
-      - uses: DeLaGuardo/setup-clojure@12
-        with: 
+      - uses: DeLaGuardo/setup-clojure@13.4
+        with:
           cli: latest
       - run: clojure -T:build deploy
-        env: 
-          CLOJARS_USERNAME: ${{
-secrets.CLOJARS_USERNAME }}
-          CLOJARS_PASSWORD: ${{
-secrets.CLOJARS_PASSWORD }}
+        env:
+          CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+          CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
