@@ -86,9 +86,10 @@
 
 ;; Creation ops
 (defn arange
-  "torch.arange(n)"
-  [n]
-  (torch/arange n))
+    ([n]                    (torch/arange n))
+    ([start end]            (torch/arange start end))
+    ([start end step]       (torch/arange start end step))
+    ([start end step dtype] (torch/arange start end step :dtype dtype)))
 
  (defn zeros [shape & {:keys [dtype device]}]
     (cond-> (torch/zeros shape)
