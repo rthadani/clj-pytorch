@@ -104,6 +104,17 @@
   [module]
   (py. (->py module) parameters))
 
+(defn parameter
+    "Wrap a tensor as a learnable nn.Parameter."
+    [tensor & {:keys [requires-grad] :or {requires-grad true}}]
+    (nn/Parameter tensor :requires_grad requires-grad))
+
+(defn register-parameter!
+    "Register a learnable parameter on self."
+    [self attr-name tensor & {:keys [requires-grad] :or {requires-grad true}}]
+    (py. (->py self) register_parameter (kw->str attr-name)
+         (nn/Parameter tensor :requires_grad requires-grad)))
+
 (defn train!
   "Set module to training mode."
   [module]
@@ -297,3 +308,5 @@
                             (py. (py/get-item new-w (builtins/slice 0 old-out)) copy_ old-w)
                             (py. (py/get-item new-b (builtins/slice 0 old-out)) copy_ old-b)))]
         (f/to-device (apply sequential new-modules) device)))))
+
+ 

@@ -13,6 +13,14 @@
   (testing "ones"  (is (= 1.0 (f/item (f/squeeze (f/ones [1]))))))
   (testing "zeros shape" (is (= [2 3] (f/shape (f/zeros [2 3])))))
   (testing "ones shape"  (is (= [2 3] (f/shape (f/ones [2 3])))))
+  (testing "zeros device" (is (some? (f/zeros [2] :device :cpu))))
+  (testing "ones device"  (is (some? (f/ones [2] :device :cpu))))
+  (testing "zeros-like shape" (is (= [2 3] (f/shape (f/zeros-like (f/zeros [2 3]))))))
+  (testing "ones-like shape"  (is (= [2 3] (f/shape (f/ones-like (f/ones [2 3]))))))
+  (testing "full value"  (is (= 7 (f/item (f/squeeze (f/full [1] 7))))))
+  (testing "full shape"  (is (= [2 3] (f/shape (f/full [2 3] 5)))))
+  (testing "full device" (is (some? (f/full [2] 1 :device :cpu))))
+  (testing "full-like value" (is (= 3.0 (f/item (f/squeeze (f/full-like (f/zeros [1]) 3))))))
   (testing "arange length" (is (= 5 (first (f/size (f/arange 5))))))
   (testing "arange values" (is (= [0 1 2 3 4] (clj (f/arange 5)))))
   (testing "eye shape" (is (= [3 3] (f/shape (f/eye 3)))))
@@ -61,7 +69,10 @@
     (testing "mul" (is (= [2.0 4.0 6.0]   (clj (f/mul a 2.0)))))
     (testing "div" (is (= [0.5 1.0 1.5]   (clj (f/div a 2.0)))))
     (testing "pow" (is (= [1.0 4.0 9.0]   (clj (f/pow a 2)))))
-    (testing "sqrt" (is (= [1.0 2.0 3.0]  (clj (f/sqrt (t 1.0 4.0 9.0))))))
+    (testing "scalar-pow" (is (= [2.0 4.0 8.0] (clj (f/scalar-pow 2 (t 1.0 2.0 3.0))))))
+    (testing "sqrt"  (is (= [1.0 2.0 3.0]  (clj (f/sqrt (t 1.0 4.0 9.0))))))
+    (testing "rsqrt" (is (every? #(< (Math/abs (- % (/ 1.0 (Math/sqrt 4.0)))) 1e-6)
+                                  (clj (f/rsqrt (t 4.0 4.0 4.0))))))
     (testing "abs"  (is (= [1.0 2.0 3.0]  (clj (f/abs (t -1.0 -2.0 -3.0))))))
     (testing "exp e^0 = 1" (is (< (Math/abs (- 1.0 (f/item (f/squeeze (f/exp (tensor/->tensor [0.0])))))) 1e-6)))
     (testing "log ln(1) = 0" (is (< (Math/abs (f/item (f/squeeze (f/log (tensor/->tensor [1.0]))))) 1e-6)))
@@ -103,7 +114,12 @@
     (testing "lt" (is (= [true false false]   (mapv boolean (clj (f/lt a b))))))
     (testing "ge" (is (= [false true true]    (mapv boolean (clj (f/ge a b))))))
     (testing "le" (is (= [true true false]    (mapv boolean (clj (f/le a b))))))
-    (testing "eq" (is (= [false true false]   (mapv boolean (clj (f/eq a b))))))))
+    (testing "eq" (is (= [false true false]   (mapv boolean (clj (f/eq a b))))))
+    (testing "ne" (is (= [true false true]    (mapv boolean (clj (f/ne a b))))))
+    (testing "logical-and"
+      (let [x (t 1.0 0.0 1.0)
+            y (t 1.0 1.0 0.0)]
+        (is (= [true false false] (mapv boolean (clj (f/logical-and x y)))))))))
 
 (deftest stacking-ops
   (let [a (t 1.0 2.0)
@@ -172,7 +188,17 @@
     (testing "masked-fill replaces masked positions"
       (let [mask (f/le a (t 2.0 2.0 2.0 2.0))
             r    (f/masked-fill a mask -1.0)]
-        (is (= [-1.0 -1.0 3.0 4.0] (clj r)))))))
+        (is (= [-1.0 -1.0 3.0 4.0] (clj r)))))
+    (testing "masked-fill! mutates tensor in place"
+      (let [x    (tensor/->tensor [1.0 2.0 3.0 4.0])
+            mask (f/le x (t 2.0 2.0 2.0 2.0))]
+        (f/masked-fill! x mask 0.0)
+        (is (= [0.0 0.0 3.0 4.0] (clj x)))))
+    (testing "masked-scatter copies src values into masked positions"
+      (let [x    (tensor/->tensor [1.0 2.0 3.0 4.0])
+            mask (f/le x (t 2.0 2.0 2.0 2.0))
+            src  (tensor/->tensor [9.0 8.0])]
+        (is (= [9.0 8.0 3.0 4.0] (clj (f/masked-scatter x mask src))))))))
 
 (deftest device-and-dtype
   (let [t1 (t 1.0 2.0)]
@@ -184,7 +210,11 @@
     (testing "to-dtype converts dtype"
       (let [long-t (f/to-dtype t1 (f/dtype (tensor/->long t1)))]
         (is (some? long-t))
-        (is (= (f/shape t1) (f/shape long-t)))))))
+        (is (= (f/shape t1) (f/shape long-t)))))
+    (testing "type-as casts to same dtype as reference tensor"
+      (let [ref    (tensor/->long t1)
+            result (f/type-as t1 ref)]
+        (is (= (f/dtype ref) (f/dtype result)))))))
 
 (deftest misc-ops
   (testing "clone is independent"

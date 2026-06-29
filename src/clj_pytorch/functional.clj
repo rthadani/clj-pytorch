@@ -82,21 +82,35 @@
   [t]
   (py/->jvm (py. t numel)))
 
+(declare to-dtype to-device)
+
 ;; Creation ops
 (defn arange
   "torch.arange(n)"
   [n]
   (torch/arange n))
 
-(defn zeros
-  "torch.zeros(shape)"
-  [shape]
-  (torch/zeros shape))
+ (defn zeros [shape & {:keys [dtype device]}]
+    (cond-> (torch/zeros shape)
+      dtype  (to-dtype dtype)
+      device (to-device device)))
 
-(defn ones
-  "torch.ones(shape)"
-  [shape]
-  (torch/ones shape))
+(defn ones [shape & {:keys [dtype device]}]
+    (cond-> (torch/ones shape)
+      dtype  (to-dtype dtype)
+      device (to-device device)))
+
+(defn zeros-like [t] (torch/zeros_like t))
+
+(defn ones-like  [t] (torch/ones_like  t))
+
+(defn full [shape fill-value & {:keys [dtype device]}]
+    (cond-> (torch/full shape fill-value)
+      dtype  (to-dtype dtype)
+      device (to-device device)))
+
+(defn full-like [t fill-value]
+  (torch/full_like t fill-value))
 
 (defn randn
   "torch.randn(shape)"
@@ -121,21 +135,24 @@
   (torch/eye n))
 
 ;; Math ops
-(defn matmul  [a b]       (torch/matmul a b))
-(defn add     [a b]       (torch/add a b))
-(defn sub     [a b]       (torch/sub a b))
-(defn gt      [a b]       (torch/gt a b))
-(defn lt      [a b]       (torch/lt a b))
-(defn ge      [a b]       (torch/ge a b))
-(defn le      [a b]       (torch/le a b))
-(defn eq      [a b]       (torch/eq a b))
-(defn mul     [t scalar]  (py. t __mul__ scalar))
-(defn div     [a b]       (torch/div a b))
-(defn pow     [t exp]     (py. t __pow__ exp))
-(defn sqrt    [t]         (torch/sqrt t))
-(defn abs     [t]         (torch/abs t))
-(defn exp     [t]         (torch/exp t))
-(defn log     [t]         (torch/log t))
+(defn matmul [a b] (torch/matmul a b))
+(defn add [a b] (torch/add a b))
+(defn sub [a b] (torch/sub a b))
+(defn gt  [a b] (torch/gt a b))
+(defn lt  [a b] (torch/lt a b))
+(defn ge  [a b] (torch/ge a b))
+(defn le  [a b] (torch/le a b))
+(defn eq  [a b] (torch/eq a b))
+(defn ne [a b] (torch/ne a b))
+(defn mul [t scalar] (py. t __mul__ scalar))
+(defn div [a b] (torch/div a b))
+(defn pow [t exp] (py. t __pow__ exp))
+(defn scalar-pow [base exp] (torch/pow base exp))
+(defn sqrt [t] (torch/sqrt t))
+(defn rsqrt [t] (torch/rsqrt t))
+(defn abs [t] (torch/abs t))
+(defn exp [t] (torch/exp t))
+(defn log [t] (torch/log t))
 
 (defn mean
   ([t]        (py. t mean))
@@ -159,6 +176,8 @@
   ([t]         (py. t norm))
   ([t p]       (py. t norm p))
   ([t p dim]   (py. t norm p dim)))
+
+(defn logical-and [a b] (torch/logical_and a b))
 
 ;; Stacking / concatenation
 (defn cat
@@ -226,14 +245,29 @@
   [t mask value]
   (py. t masked_fill mask value))
 
+(defn masked-fill!
+  "In-place fill: sets positions where mask is true to val. Mutates t, returns t."
+  [t mask val]
+  (py. t masked_fill_ mask val))
+
+(defn masked-scatter
+  "Copy elements from src into t at positions where mask is true."
+  [t mask src]
+  (py. t masked_scatter mask src))
+
 ;; Device / dtype
 (defn to-device
   [t device-str]
-  (py. t to (torch/device device-str)))
+  (py. t to (torch/device (name device-str))))
 
 (defn to-dtype
   [t dtype]
   (py. t to dtype))
+
+(defn type-as
+  "Cast tensor t to the same dtype as other."
+  [t other]
+  (py. t type_as other))
 
 (defn detach
   [t]

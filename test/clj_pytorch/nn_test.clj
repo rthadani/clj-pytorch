@@ -1,5 +1,6 @@
 (ns clj-pytorch.nn-test
   (:require [clojure.test :refer :all]
+            [libpython-clj2.python :refer [py.-]]
             [clj-pytorch.nn        :as nn]
             [clj-pytorch.functional :as f]
             [clj-pytorch.tensor    :as tensor]))
@@ -86,6 +87,20 @@
   (testing "custom module has parameters"
     (let [net (TwoLayerNet 4 8 2)]
       (is (some? (nn/parameters net))))))
+
+(deftest parameter-tests
+  (testing "parameter wraps tensor as learnable parameter"
+    (let [t   (tensor/->tensor [[1.0 2.0] [3.0 4.0]])
+          p   (nn/parameter t)]
+      (is (some? p))))
+  (testing "parameter requires-grad is true by default"
+    (let [p (nn/parameter (tensor/->tensor [1.0 2.0]))]
+      (is (true? (boolean (py.- p requires_grad))))))
+  (testing "register-parameter! makes parameter visible in module parameters"
+    (let [mod (nn/linear 2 2)
+          t   (tensor/->tensor [1.0 2.0])]
+      (nn/register-parameter! mod :my-param t)
+      (is (some? (nn/parameters mod))))))
 
 (deftest state-dict-roundtrip
   (testing "state-dict and load-state-dict!"
