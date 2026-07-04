@@ -176,9 +176,11 @@
   (nn/Conv1d in-ch out-ch kernel :stride stride :padding padding))
 
 (defn embedding
-  "nn.Embedding(num-embeddings, embedding-dim)"
-  [num-embeddings embed-dim]
-  (nn/Embedding num-embeddings embed-dim))
+  "nn.Embedding(num-embeddings, embedding-dim, padding-idx=nil)"
+  [num-embeddings embed-dim & {:keys [padding-idx]}]
+  (if padding-idx
+    (nn/Embedding num-embeddings embed-dim :padding_idx padding-idx)
+    (nn/Embedding num-embeddings embed-dim)))
 
 (defn layer-norm
   "nn.LayerNorm(normalized-shape, eps=1e-6)"

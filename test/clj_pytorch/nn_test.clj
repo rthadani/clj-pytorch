@@ -16,6 +16,8 @@
     (is (some? (nn/conv1d 1 4 3))))
   (testing "embedding"
     (is (some? (nn/embedding 10 16))))
+  (testing "embedding with padding-idx"
+    (is (some? (nn/embedding 10 16 :padding-idx 0))))
   (testing "layer-norm"
     (is (some? (nn/layer-norm [8]))))
   (testing "batch-norm1d"
