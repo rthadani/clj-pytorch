@@ -58,6 +58,10 @@
     (testing "permute"
       (let [t3d (tensor/->tensor [[[1.0 2.0] [3.0 4.0]]])]
         (is (= [2 1 2] (f/shape (f/permute t3d [1 0 2]))))))
+    (testing "chunk splits into equal pieces"
+      (let [parts (f/chunk (t 1.0 2.0 3.0 4.0 5.0 6.0) 3)]
+        (is (= 3 (count parts)))
+        (is (every? #(= [2] (f/shape %)) parts))))
     (testing "expand broadcasts size-1 dim"
       (let [row (tensor/->tensor [[1.0 2.0 3.0]])]
         (is (= [4 3] (f/shape (f/expand row [4 3]))))))))
@@ -74,6 +78,10 @@
     (testing "sqrt"  (is (= [1.0 2.0 3.0]  (clj (f/sqrt (t 1.0 4.0 9.0))))))
     (testing "rsqrt" (is (every? #(< (Math/abs (- % (/ 1.0 (Math/sqrt 4.0)))) 1e-6)
                                   (clj (f/rsqrt (t 4.0 4.0 4.0))))))
+    (testing "cos" (is (every? #(< (Math/abs (- % (Math/cos 0.0))) 1e-6)
+                               (clj (f/cos (t 0.0 0.0 0.0))))))
+    (testing "sin" (is (every? #(< (Math/abs %) 1e-6)
+                               (clj (f/sin (t 0.0 0.0 0.0))))))
     (testing "abs"  (is (= [1.0 2.0 3.0]  (clj (f/abs (t -1.0 -2.0 -3.0))))))
     (testing "exp e^0 = 1" (is (< (Math/abs (- 1.0 (f/item (f/squeeze (f/exp (tensor/->tensor [0.0])))))) 1e-6)))
     (testing "log ln(1) = 0" (is (< (Math/abs (f/item (f/squeeze (f/log (tensor/->tensor [1.0]))))) 1e-6)))
