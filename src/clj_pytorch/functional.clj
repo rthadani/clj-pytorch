@@ -61,6 +61,11 @@
   [t dim]
   (py. t unsqueeze dim))
 
+(defn select
+  "Select a single slice along dim at index, squeezing that dimension."
+  [tensor dim index]
+  (py. tensor select dim index))
+
 ;; Tensor metadata
 (defn size
   "Return size as a Clojure vector."

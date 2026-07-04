@@ -175,6 +175,10 @@
       (let [src (tensor/->tensor [[1.0 2.0] [3.0 4.0] [5.0 6.0]])
             idx (tensor/->long (t 0 2))]
         (is (= [2 2] (f/shape (f/index-select src 0 idx))))))
+    (testing "select picks a slice along a dim and drops it"
+      (let [src (tensor/->tensor [[1.0 2.0 3.0] [4.0 5.0 6.0]])]
+        (is (= [4.0 5.0 6.0] (clj (f/select src 0 1))))
+        (is (= [2.0 5.0] (clj (f/select src 1 1))))))
     (testing "multinomial samples correct count"
       (let [probs  (f/softmax (t 1.0 2.0 3.0) :dim -1)
             sample (f/multinomial probs 2 :replacement true)]
