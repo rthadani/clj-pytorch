@@ -148,7 +148,7 @@
                    (fn [self#]
                      (py/call-attr clj-pytorch.nn/-nn-Module "__init__" self#)
                      (doseq [[k# v#] layer-map#]
-                       (py/set-attr! self# (kw->str k#) v#))
+                       (py/set-attr! self# (kw->str k#) (if (instance? Module v#) (.py-module v#) v#)))
                      (when extra-init# (extra-init# self#))
                      nil))
                   "forward"
@@ -214,12 +214,13 @@
 (defn module-list
   "nn.ModuleList(modules)"
   [modules]
-  (nn/ModuleList modules))
+  (nn/ModuleList (map #(if (instance? Module %)
+                         (.py-module %) %) modules)))
 
 (defn module-list-seq
   "Convert a registered ModuleList attribute into a lazy Clojure seq."
   [self kw]
-  (seq (py/as-jvm (get-layer self kw))))
+  (seq (py/as-jvm (py/get-attr (->py self) (kw->str kw)))))
 
 (defn module-dict
   "nn.ModuleDict(mapping)"

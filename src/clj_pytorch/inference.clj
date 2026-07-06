@@ -6,7 +6,8 @@
             [clj-pytorch.tensor :as tensor]
             [clj-pytorch.context :as ctx]))
 
-(require-python '[torch :as torch])
+(require-python '[torch :as torch]
+                '[builtins :as builtins])
 
 ;; atom-backed cache for models that return a new cache object each step
 (defn kv-cache
@@ -18,32 +19,35 @@
 
 ;; array-backed per-layer cache — keys and values stored in Object arrays
 ;; indexed by layer so concat along the seq dim is cheap
-(defn layer-kv-cache [num-layers]
-  {:key-cache (make-array Object num-layers)
-   :value-cache (make-array Object num-layers)})
+(defn layer-kv-cache [_num-layers]
+  {:key-cache (builtins/dict) :value-cache (builtins/dict)})
+
+(defn- py-dict-get [d k]
+  (when (py. d __contains__ k) (py/get-item d k)))
 
 (defn kv-num-items [cache]
-  (let [kc (:key-cache cache)]
-    (if (nil? (aget kc 0))
-      0
-      (nth (t/shape (aget kc 0)) 2))))
+  (let [kc (:key-cache cache)
+        t  (py-dict-get kc (builtins/int 0))]
+    (if (nil? t) 0 (nth (t/shape t) 2))))
 
 (defn kv-update! [cache key-states value-states layer-idx]
-  (let [kc (:key-cache cache)
-        vc (:value-cache cache)
-        k (aget kc layer-idx)
-        v (aget vc layer-idx)]
+  (let [idx (builtins/int layer-idx)
+        kc  (:key-cache cache)
+        vc  (:value-cache cache)
+        k   (py-dict-get kc idx)
+        v   (py-dict-get vc idx)]
     (if (nil? k)
-      (do (aset kc layer-idx key-states)
-          (aset vc layer-idx value-states))
-      (do (aset kc layer-idx (t/cat [k key-states] :dim -2))
-          (aset vc layer-idx (t/cat [v value-states] :dim -2))))
-    [(aget kc layer-idx)
-     (aget vc layer-idx)]))
+      (do (py. kc __setitem__ idx key-states)
+          (py. vc __setitem__ idx value-states))
+      (do (py. kc __setitem__ idx (t/cat (builtins/list [k key-states]) :dim -2))
+          (py. vc __setitem__ idx (t/cat (builtins/list [v value-states]) :dim -2))))
+    [(py/get-item kc idx) (py/get-item vc idx)]))
 
 (defn kv-get [cache layer-idx]
-  [(aget (:key-cache cache) layer-idx)
-   (aget (:value-cache cache) layer-idx)])
+  (let [idx (builtins/int layer-idx)
+        kc  (:key-cache cache)
+        vc  (:value-cache cache)]
+    [(py/get-item kc idx) (py/get-item vc idx)]))
 
 ;; sampling
 
@@ -71,18 +75,20 @@
     (-> logits (temperature-scale temperature) (top-p-sample top-p))
     (greedy-sample logits)))
 
-(defn extend-attention-mask [attention-mask]
-  (t/cat [attention-mask (torch/ones [1 1] :device (t/device-of attention-mask))] :dim -1))
+(defn extend-attention-mask
+  [attention-mask]
+  (t/cat (builtins/list [attention-mask (torch/ones [1 1] :device (t/device-of attention-mask))]) :dim -1))
 
 ;; tokenizer helpers
-
 (defn tokenizer-encode
   [tokenizer text & {:keys [return-tensors padding truncation max-length]
                      :or {return-tensors "pt" padding true truncation true}}]
   (let [opts (cond-> {:return_tensors return-tensors :padding padding :truncation truncation}
                max-length (assoc :max_length max-length))
-        out (py/call-attr-kw tokenizer "__call__" [text] opts)]
-    {:input-ids (py.- out input_ids)
+        py-text (if (string? text) (builtins/str text)
+                    (builtins/list (mapv builtins/str text)))
+        out  (py/call-attr-kw tokenizer "__call__" [py-text] opts)]
+    {:input-ids      (py.- out input_ids)
      :attention-mask (py.- out attention_mask)}))
 
 (defn tokenizer-decode
@@ -92,9 +98,7 @@
 (defn eos-token-id [tokenizer]
   (py/->jvm (py.- tokenizer eos_token_id)))
 
-
 ;; generation loop
-
 (defn generate
   [model-fn init-state
    & {:keys [max-new-tokens stop-token-id do-sample temperature top-p]
@@ -104,24 +108,23 @@
          remaining max-new-tokens]
     (if (zero? remaining)
       (assoc state :generated-ids generated-ids)
-      (let [outputs (model-fn state)
-            kv-cache (:kv-cache outputs)
-            logits (-> (:logits outputs)
-                       (t/index-select 1 (t/tensor [(dec (first (rest (t/size (:logits outputs)))))]))
-                       (t/squeeze 1))
+      (let [outputs    (model-fn state)
+            kv-cache   (:kv-cache outputs)
+            logits     (-> (:logits outputs) (t/select 1 -1))   ;; select last pos, no CPU index tensor
             next-token (ctx/inference-mode
                         (sample-next-token logits
                                            :do-sample do-sample
                                            :temperature temperature
                                            :top-p top-p))
-            token-id (t/item (t/squeeze next-token))
-            new-ids (conj generated-ids token-id)]
+            token-id   (t/item (t/squeeze next-token))
+            new-ids    (conj generated-ids token-id)]
         (if (and stop-token-id (= token-id stop-token-id))
           (assoc state :generated-ids new-ids)
           (recur
            (cond-> state
-             true (assoc :input-ids (t/unsqueeze next-token -1)
-                         :attention-mask (extend-attention-mask (:attention-mask state)))
+             true     (assoc :input-ids      next-token           ;; already [batch 1], no unsqueeze
+                             :attention-mask (extend-attention-mask (:attention-mask state)))
              kv-cache (assoc :kv-cache kv-cache))
            new-ids
            (dec remaining)))))))
+
