@@ -53,3 +53,13 @@
        (do ~@body)
        (finally
          (libpython-clj2.python/call-attr ctx# "__exit__" nil nil nil)))))
+
+(defmacro no-autocast
+  "Run body with autocast disabled for device-type."
+  [device-type & body]
+  `(let [ctx# (torch/autocast ~device-type :enabled false)]
+     (libpython-clj2.python/call-attr ctx# "__enter__")
+     (try
+       (do ~@body)
+       (finally
+         (libpython-clj2.python/call-attr ctx# "__exit__" nil nil nil)))))
