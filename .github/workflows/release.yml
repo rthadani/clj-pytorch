@@ -15,7 +15,17 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@13.4
         with:
           cli: latest
-      - run: clojure -T:build deploy
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            .cpcache
+          key: ${{ runner.os }}-clojure-${{ hashFiles('deps.edn') }}
+          restore-keys: ${{ runner.os }}-clojure-
+
+      - name: Deploy to Clojars
+        run: clojure -T:build deploy :version "\"${GITHUB_REF_NAME#v}\""
         env:
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
           CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
