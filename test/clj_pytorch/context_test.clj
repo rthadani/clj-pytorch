@@ -32,3 +32,24 @@
   (testing "exceptions propagate out of no-grad"
     (is (thrown? Exception
                  (ctx/no-grad (throw (ex-info "test" {})))))))
+
+(deftest autocast-test
+  (testing "body evaluates and returns its value"
+    (let [result (ctx/autocast "cpu" (+ 1 2))]
+      (is (= 3 result))))
+  (testing "tensor ops work inside autocast"
+    (let [t (tensor/->tensor [1.0 2.0 3.0])
+          result (ctx/autocast "cpu" (f/sum t))]
+      (is (= 6.0 (f/item result)))))
+  (testing "exceptions propagate out of autocast"
+    (is (thrown? Exception
+                 (ctx/autocast "cpu" (throw (ex-info "test" {})))))))
+
+(deftest no-autocast-test
+  (testing "body evaluates and returns its value"
+    (let [result (ctx/no-autocast "cpu" (+ 1 2))]
+      (is (= 3 result))))
+  (testing "tensor ops work inside no-autocast"
+    (let [t (tensor/->tensor [1.0 2.0 3.0])
+          result (ctx/no-autocast "cpu" (f/mean t))]
+      (is (= 2.0 (f/item result))))))

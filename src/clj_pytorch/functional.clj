@@ -10,7 +10,6 @@
   (:require [libpython-clj2.python  :refer [py. py.-] :as py]
             [libpython-clj2.require :refer [require-python]]))
 
-
 (require-python '[torch :as torch]
                 '[torch.nn.functional :as F])
 
@@ -61,6 +60,16 @@
   [t dim]
   (py. t unsqueeze dim))
 
+(defn select
+  "Select a single slice along dim at index, squeezing that dimension."
+  [tensor dim index]
+  (py. tensor select dim index))
+
+(defn chunk
+  "Split t into chunks equal-sized pieces along dim. Returns a Clojure seq of tensors."
+  [t chunks & {:keys [dim] :or {dim 0}}]
+  (torch/chunk t chunks :dim dim))
+
 ;; Tensor metadata
 (defn size
   "Return size as a Clojure vector."
@@ -86,29 +95,29 @@
 
 ;; Creation ops
 (defn arange
-    ([n]                    (torch/arange n))
-    ([start end]            (torch/arange start end))
-    ([start end step]       (torch/arange start end step))
-    ([start end step dtype] (torch/arange start end step :dtype dtype)))
+  ([n]                    (torch/arange n))
+  ([start end]            (torch/arange start end))
+  ([start end step]       (torch/arange start end step))
+  ([start end step dtype] (torch/arange start end step :dtype dtype)))
 
- (defn zeros [shape & {:keys [dtype device]}]
-    (cond-> (torch/zeros shape)
-      dtype  (to-dtype dtype)
-      device (to-device device)))
+(defn zeros [shape & {:keys [dtype device]}]
+  (cond-> (torch/zeros shape)
+    dtype  (to-dtype dtype)
+    device (to-device device)))
 
 (defn ones [shape & {:keys [dtype device]}]
-    (cond-> (torch/ones shape)
-      dtype  (to-dtype dtype)
-      device (to-device device)))
+  (cond-> (torch/ones shape)
+    dtype  (to-dtype dtype)
+    device (to-device device)))
 
 (defn zeros-like [t] (torch/zeros_like t))
 
 (defn ones-like  [t] (torch/ones_like  t))
 
 (defn full [shape fill-value & {:keys [dtype device]}]
-    (cond-> (torch/full shape fill-value)
-      dtype  (to-dtype dtype)
-      device (to-device device)))
+  (cond-> (torch/full shape fill-value)
+    dtype  (to-dtype dtype)
+    device (to-device device)))
 
 (defn full-like [t fill-value]
   (torch/full_like t fill-value))
@@ -179,6 +188,9 @@
   ([t p dim]   (py. t norm p dim)))
 
 (defn logical-and [a b] (torch/logical_and a b))
+
+(defn cos [t] (torch/cos t))
+(defn sin [t] (torch/sin t))
 
 ;; Stacking / concatenation
 (defn cat
@@ -327,3 +339,7 @@
   "Return the device a tensor lives on as a string."
   [t]
   (str (py.- t device)))
+
+;; dtype constants instead of torch/int64...
+(def int64  torch/int64)
+(def float32 torch/float32)

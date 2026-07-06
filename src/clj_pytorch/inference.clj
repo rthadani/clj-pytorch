@@ -92,20 +92,6 @@
 (defn eos-token-id [tokenizer]
   (py/->jvm (py.- tokenizer eos_token_id)))
 
-;; model loading
-
-(defn load-hf-model
-  [model-path & {:keys [device model-class tokenizer-class dtype]}]
-  (require-python '[transformers :as transformers])
-  (let [xf (py/import-module "transformers")
-        dev (or device (tensor/best-device))
-        model-cls (or model-class (py.- xf AutoModelForCausalLM))
-        tok-cls (or tokenizer-class (py.- xf AutoTokenizer))
-        load-opts (cond-> {:device_map dev} dtype (assoc :torch_dtype dtype))
-        model (py/call-attr-kw model-cls "from_pretrained" [model-path] load-opts)
-        tokenizer (py. tok-cls from_pretrained model-path)]
-    (nn/eval! model)
-    {:model model :tokenizer tokenizer :device dev}))
 
 ;; generation loop
 
