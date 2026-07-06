@@ -11,7 +11,8 @@
             [libpython-clj2.require :refer [require-python]]))
 
 (require-python '[torch :as torch]
-                '[torch.nn.functional :as F])
+                '[torch.nn.functional :as F]
+                '[builtins :as builtins])
 
 (declare to-device)
 
@@ -193,15 +194,16 @@
 (defn sin [t] (torch/sin t))
 
 ;; Stacking / concatenation
+
 (defn cat
   "torch.cat(tensors, dim=0)"
   [tensors & {:keys [dim] :or {dim 0}}]
-  (torch/cat tensors :dim dim))
+  (torch/cat (builtins/list tensors) :dim dim))
 
 (defn stack
   "torch.stack(tensors, dim=0)"
   [tensors & {:keys [dim] :or {dim 0}}]
-  (torch/stack tensors :dim dim))
+  (torch/stack (builtins/list tensors) :dim dim))
 
 ;;activations
 (defn softmax

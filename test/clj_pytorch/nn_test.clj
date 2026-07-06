@@ -40,7 +40,15 @@
     (let [net (nn/sequential (nn/linear 4 8) (nn/relu))]
       (is (some? net))))
   (testing "module-list"
-    (is (some? (nn/module-list [(nn/linear 4 8) (nn/linear 8 4)])))))
+    (is (some? (nn/module-list [(nn/linear 4 8) (nn/linear 8 4)]))))
+  (testing "module-list-seq returns a seq of layers"
+    (let [parent (nn/linear 2 2)
+          ml (nn/module-list [(nn/linear 4 8) (nn/relu)])]
+      (nn/set-layer! parent :layers ml)
+      (is (= 2 (count (nn/module-list-seq parent :layers))))))
+  (testing "module-list registers parameters"
+    (let [ml (nn/module-list [(nn/linear 4 8) (nn/linear 8 2)])]
+      (is (some? (nn/parameters ml))))))
 
 (deftest loss-functions
   (testing "cross-entropy-loss" (is (some? (nn/cross-entropy-loss))))
