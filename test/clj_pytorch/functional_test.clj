@@ -62,6 +62,22 @@
       (let [parts (f/chunk (t 1.0 2.0 3.0 4.0 5.0 6.0) 3)]
         (is (= 3 (count parts)))
         (is (every? #(= [2] (f/shape %)) parts))))
+    (testing "narrow slices along a dim"
+      (let [data (tensor/->tensor [1.0 2.0 3.0 4.0 5.0])]
+        (is (= [1.0 2.0 3.0] (clj (f/narrow data 0 0 3))))
+        (is (= [3.0 4.0] (clj (f/narrow data 0 2 2))))))
+    (testing "slice :all keeps full dimension"
+      (let [data (tensor/->tensor [[1.0 2.0 3.0] [4.0 5.0 6.0]])]
+        (is (= [2 3] (f/shape (f/slice data [:all :all]))))))
+    (testing "slice with [start end] range"
+      (let [data (tensor/->tensor [1.0 2.0 3.0 4.0 5.0])]
+        (is (= [2.0 3.0 4.0] (clj (f/slice data [[1 4]]))))))
+    (testing "slice with step"
+      (let [data (tensor/->tensor [1.0 2.0 3.0 4.0 5.0 6.0])]
+        (is (= [1.0 3.0 5.0] (clj (f/slice data [[0 6 2]]))))))
+    (testing "slice 2d with range on first dim"
+      (let [data (tensor/->tensor [[1.0 2.0 3.0] [4.0 5.0 6.0] [7.0 8.0 9.0]])]
+        (is (= [2 3] (f/shape (f/slice data [[0 2] :all]))))))
     (testing "expand broadcasts size-1 dim"
       (let [row (tensor/->tensor [[1.0 2.0 3.0]])]
         (is (= [4 3] (f/shape (f/expand row [4 3]))))))))

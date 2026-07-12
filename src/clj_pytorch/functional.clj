@@ -66,6 +66,45 @@
   [tensor dim index]
   (py. tensor select dim index))
 
+(defn narrow
+  "Narrow tensor along dim from start for length elements.
+   Equivalent to tensor[start:start+length] along dim."
+  [tensor dim start length]
+  (torch/narrow tensor dim start length))
+
+(defn index-select
+  "torch.index_select(input, dim, index)"
+  [input dim index]
+  (torch/index_select input dim index))
+
+(defn- apply-dim-slice [t dim bound dim-size]
+  (cond
+    (= bound :all) t
+    (number? bound) (narrow t dim bound 1)
+    (vector? bound)
+    (let [[start end step] bound
+          start (or start 0)
+          end (or end dim-size)
+          step (or step 1)]
+      (if (= step 1)
+        (narrow t dim start (- end start))
+        (torch/index_select t dim (torch/arange start end step))))
+    :else (throw (IllegalArgumentException. (str "Invalid slice bound: " bound)))))
+
+(defn slice
+  "Slice a tensor along each dimension using a spec vector.
+   Each entry corresponds to one dimension:
+     :all            — entire dimension
+     n               — single element at n, keeps the dimension (length 1)
+     [start end]     — start to end exclusive, step 1 (uses narrow, returns a view)
+     [start end step] — start to end exclusive with step (uses index-select, returns a copy)"
+  [tensor slice-spec]
+  (let [shapes (vec (py/->jvm (py. tensor size)))]
+    (reduce-kv (fn [t dim spec]
+                 (apply-dim-slice t dim spec (nth shapes dim)))
+               tensor
+               (vec slice-spec))))
+
 (defn chunk
   "Split t into chunks equal-sized pieces along dim. Returns a Clojure seq of tensors."
   [t chunks & {:keys [dim] :or {dim 0}}]
@@ -332,11 +371,6 @@
   [input dim index]
   (torch/gather input dim index))
 
-(defn index-select
-  "torch.index_select(input, dim, index)"
-  [input dim index]
-  (torch/index_select input dim index))
-
 (defn device-of
   "Return the device a tensor lives on as a string."
   [t]
@@ -345,3 +379,4 @@
 ;; dtype constants instead of torch/int64...
 (def int64  torch/int64)
 (def float32 torch/float32)
+(def long torch/long)
