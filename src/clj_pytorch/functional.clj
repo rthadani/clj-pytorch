@@ -183,6 +183,11 @@
   [shape]
   (torch/rand shape))
 
+(defn randint
+  "torch.randint(high, size) or torch.randint(low, high, size)"
+  ([high size] (torch/randint high size))
+  ([low high size] (torch/randint low high size)))
+
 (defn tensor
   "torch.tensor(data)"
   [data & {:keys [dtype device]}]

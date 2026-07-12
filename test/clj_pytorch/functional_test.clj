@@ -31,6 +31,13 @@
   (testing "rand values in [0 1)"
     (let [v (clj (f/rand [100]))]
       (is (every? #(and (>= % 0.0) (< % 1.0)) v))))
+  (testing "randint shape" (is (= [2 3] (f/shape (f/randint 0 10 [2 3])))))
+  (testing "randint values in [low high)"
+    (let [v (clj (f/randint 3 7 [100]))]
+      (is (every? #(and (>= % 3) (< % 7)) v))))
+  (testing "randint 2-arg form values in [0 high)"
+    (let [v (clj (f/randint 5 [100]))]
+      (is (every? #(and (>= % 0) (< % 5)) v))))
   (testing "tensor fn"
     (is (= [1.0 2.0] (clj (f/tensor [1.0 2.0]))))))
 
