@@ -18,6 +18,10 @@
     (is (some? (nn/embedding 10 16))))
   (testing "embedding with padding-idx"
     (is (some? (nn/embedding 10 16 :padding-idx 0))))
+  (testing "embedding with device"
+    (is (some? (nn/embedding 10 16 :device "cpu"))))
+  (testing "embedding with padding-idx and device"
+    (is (some? (nn/embedding 10 16 :padding-idx 0 :device "cpu"))))
   (testing "layer-norm"
     (is (some? (nn/layer-norm [8]))))
   (testing "batch-norm1d"
