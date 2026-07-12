@@ -126,6 +126,12 @@
   [t]
   (py.- t dtype))
 
+(defn tensor-get
+  "Get the scalar value at indices from a tensor of any rank.
+   (tensor-get t 1 2) is equivalent to t[1, 2] in Python."
+  [t & indices]
+  (py. (py/get-item t (builtins/tuple indices)) item))
+
 (defn numel
   "Return the total number of elements."
   [t]

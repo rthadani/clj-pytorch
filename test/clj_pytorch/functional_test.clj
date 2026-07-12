@@ -206,7 +206,12 @@
     (testing "multinomial samples correct count"
       (let [probs  (f/softmax (t 1.0 2.0 3.0) :dim -1)
             sample (f/multinomial probs 2 :replacement true)]
-        (is (= [2] (f/shape sample)))))))
+        (is (= [2] (f/shape sample)))))
+    (testing "tensor-get 1D returns scalar"
+      (is (= 2.0 (f/tensor-get (t 1.0 2.0 3.0) 1))))
+    (testing "tensor-get 2D returns scalar"
+      (let [m (tensor/->tensor [[1.0 2.0] [3.0 4.0]])]
+        (is (= 3.0 (f/tensor-get m 1 0)))))))
 
 (deftest masking-ops
   (let [a    (t 1.0 2.0 3.0 4.0)
