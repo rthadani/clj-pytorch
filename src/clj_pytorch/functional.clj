@@ -162,6 +162,11 @@
 (defn full-like [t fill-value]
   (torch/full_like t fill-value))
 
+(defn manual-seed
+  "Set the random seed for reproducibility."
+  [seed]
+  (torch/manual_seed seed))
+
 (defn randn
   "torch.randn(shape)"
   [shape]
