@@ -200,6 +200,11 @@
   [n]
   (torch/eye n))
 
+(defn tril
+  "torch.tril(t, diagonal=0) — lower triangular part of a matrix."
+  [t & {:keys [diagonal] :or {diagonal 0}}]
+  (torch/tril t :diagonal diagonal))
+
 ;; Math ops
 (defn matmul [a b] (torch/matmul a b))
 (defn add [a b] (torch/add a b))
@@ -210,6 +215,10 @@
 (defn le  [a b] (torch/le a b))
 (defn eq  [a b] (torch/eq a b))
 (defn ne [a b] (torch/ne a b))
+(defn allclose
+  "torch.allclose(a, b, rtol=1e-5, atol=1e-8) — true if all elements are close."
+  [a b & {:keys [rtol atol] :or {rtol 1e-5 atol 1e-8}}]
+  (torch/allclose a b :rtol rtol :atol atol))
 (defn mul [t scalar] (py. t __mul__ scalar))
 (defn div [a b] (torch/div a b))
 (defn pow [t exp] (py. t __pow__ exp))

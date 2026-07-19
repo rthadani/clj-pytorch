@@ -26,6 +26,14 @@
   (testing "arange start end step" (is (= [0 2 4]    (clj (f/arange 0 6 2)))))
   (testing "eye shape" (is (= [3 3] (f/shape (f/eye 3)))))
   (testing "eye trace is n" (is (= 3.0 (f/item (f/sum (f/eye 3))))))
+  (testing "tril zeros upper triangle"
+    (let [m (f/tril (f/ones [3 3]))]
+      (is (= [3 3] (f/shape m)))
+      (is (= 0.0 (f/tensor-get m 0 1)))
+      (is (= 1.0 (f/tensor-get m 1 0)))))
+  (testing "tril with negative diagonal excludes main diagonal"
+    (let [m (f/tril (f/ones [3 3]) :diagonal -1)]
+      (is (= 0.0 (f/tensor-get m 1 1)))))
   (testing "randn shape" (is (= [4 4] (f/shape (f/randn [4 4])))))
   (testing "rand shape"  (is (= [3 3] (f/shape (f/rand [3 3])))))
   (testing "rand values in [0 1)"
@@ -151,7 +159,13 @@
     (testing "logical-and"
       (let [x (t 1.0 0.0 1.0)
             y (t 1.0 1.0 0.0)]
-        (is (= [true false false] (mapv boolean (clj (f/logical-and x y)))))))))
+        (is (= [true false false] (mapv boolean (clj (f/logical-and x y)))))))
+    (testing "allclose identical tensors"
+      (is (boolean (f/allclose a a))))
+    (testing "allclose within tolerance"
+      (is (boolean (f/allclose a (t 1.0 2.0000001 3.0)))))
+    (testing "allclose returns false for different tensors"
+      (is (not (boolean (f/allclose a b)))))))
 
 (deftest stacking-ops
   (let [a (t 1.0 2.0)
