@@ -83,3 +83,7 @@ To access a sublayer inside `forward`:
 ```sh
 clj -M:test -m cognitect.test-runner
 ```
+
+## Projects using clj-pytorch
+
+[vlm-from-scratch] (https://github.com/rthadani/vlm-from-scratch)
