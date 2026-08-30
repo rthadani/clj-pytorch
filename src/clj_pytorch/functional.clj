@@ -141,10 +141,12 @@
 
 ;; Creation ops
 (defn arange
-  ([n]                    (torch/arange n))
-  ([start end]            (torch/arange start end))
-  ([start end step]       (torch/arange start end step))
-  ([start end step dtype] (torch/arange start end step :dtype dtype)))
+  ([n]                          (torch/arange n))
+  ([start end]                  (torch/arange start end))
+  ([start end & {:keys [dtype device] :or {}}]
+   (cond-> (torch/arange start end)
+     dtype  (to-dtype dtype)
+     device (to-device device))))
 
 (defn zeros [shape & {:keys [dtype device]}]
   (cond-> (torch/zeros shape)
@@ -175,13 +177,24 @@
 
 (defn randn
   "torch.randn(shape)"
-  [shape]
-  (torch/randn shape))
+  [shape & {:keys [dtype device]}]
+  (cond-> (torch/randn shape)
+    dtype  (to-dtype dtype)
+    device (to-device device)))
 
 (defn rand
   "torch.rand(shape)"
-  [shape]
-  (torch/rand shape))
+  [shape & {:keys [dtype device]}]
+  (cond-> (torch/rand shape)
+    dtype  (to-dtype dtype)
+    device (to-device device)))
+
+(defn randint
+  "torch.randint(high, shape)"
+  [high shape & {:keys [dtype device]}]
+  (cond-> (torch/randint high shape)
+    dtype  (to-dtype dtype)
+    device (to-device device)))
 
 (defn randint
   "torch.randint(high, size) or torch.randint(low, high, size)"

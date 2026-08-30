@@ -159,45 +159,50 @@
 
 (defn linear
   "nn.Linear(in-features, out-features, bias=true)"
-  [in out & {:keys [bias] :or {bias true}}]
-  (nn/Linear in out :bias bias))
+  [in out & {:keys [bias device] :or {bias true}}]
+  (let [m (nn/Linear in out :bias bias)]
+    (if device (f/to-device m device) m)))
 
 (defn conv2d
   "nn.Conv2d"
-  [in-ch out-ch kernel & {:keys [stride padding dilation groups bias]
+  [in-ch out-ch kernel & {:keys [stride padding dilation groups bias device]
                           :or {stride 1 padding 0 dilation 1 groups 1 bias true}}]
-  (nn/Conv2d in-ch out-ch kernel
-             :stride stride :padding padding
-             :dilation dilation :groups groups :bias bias))
+  (let [m (nn/Conv2d in-ch out-ch kernel
+                     :stride stride :padding padding
+                     :dilation dilation :groups groups :bias bias)]
+    (if device (f/to-device m device) m)))
 
 (defn conv1d
   "nn.Conv1d"
-  [in-ch out-ch kernel & {:keys [stride padding] :or {stride 1 padding 0}}]
-  (nn/Conv1d in-ch out-ch kernel :stride stride :padding padding))
+  [in-ch out-ch kernel & {:keys [stride padding device] :or {stride 1 padding 0}}]
+  (let [m (nn/Conv1d in-ch out-ch kernel :stride stride :padding padding)]
+    (if device (f/to-device m device) m)))
 
 (defn embedding
-  "nn.Embedding(num-embeddings, embedding-dim, padding-idx=nil, device=nil)"
+  "nn.Embedding(num-embeddings, embedding-dim, padding-idx=nil)"
   [num-embeddings embed-dim & {:keys [padding-idx device]}]
-  (cond
-    (and padding-idx device) (nn/Embedding num-embeddings embed-dim :padding_idx padding-idx :device device)
-    padding-idx (nn/Embedding num-embeddings embed-dim :padding_idx padding-idx)
-    device (nn/Embedding num-embeddings embed-dim :device device)
-    :else (nn/Embedding num-embeddings embed-dim)))
+  (let [m (if padding-idx
+            (nn/Embedding num-embeddings embed-dim :padding_idx padding-idx)
+            (nn/Embedding num-embeddings embed-dim))]
+    (if device (f/to-device m device) m)))
 
 (defn layer-norm
   "nn.LayerNorm(normalized-shape, eps=1e-6)"
-  [normalized-shape & {:keys [eps] :or {eps 1e-6}}]
-  (nn/LayerNorm normalized-shape :eps eps))
+  [normalized-shape & {:keys [eps device] :or {eps 1e-6}}]
+  (let [m (nn/LayerNorm normalized-shape :eps eps)]
+    (if device (f/to-device m device) m)))
 
 (defn batch-norm1d
   "nn.BatchNorm1d"
-  [num-features & {:keys [eps momentum] :or {eps 1e-5 momentum 0.1}}]
-  (nn/BatchNorm1d num-features :eps eps :momentum momentum))
+  [num-features & {:keys [eps momentum device] :or {eps 1e-5 momentum 0.1}}]
+  (let [m (nn/BatchNorm1d num-features :eps eps :momentum momentum)]
+    (if device (f/to-device m device) m)))
 
 (defn batch-norm2d
   "nn.BatchNorm2d"
-  [num-features & {:keys [eps momentum] :or {eps 1e-5 momentum 0.1}}]
-  (nn/BatchNorm2d num-features :eps eps :momentum momentum))
+  [num-features & {:keys [eps momentum device] :or {eps 1e-5 momentum 0.1}}]
+  (let [m (nn/BatchNorm2d num-features :eps eps :momentum momentum)]
+    (if device (f/to-device m device) m)))
 
 (defn relu [] (nn/ReLU))
 (defn gelu [] (nn/GELU))
