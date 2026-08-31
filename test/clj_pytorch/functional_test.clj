@@ -35,10 +35,12 @@
     (let [m (f/tril (f/ones [3 3]) :diagonal -1)]
       (is (= 0.0 (f/tensor-get m 1 1)))))
   (testing "randn shape" (is (= [4 4] (f/shape (f/randn [4 4])))))
+  (testing "randn device" (is (some? (f/randn [2 3] :device :cpu))))
   (testing "rand shape"  (is (= [3 3] (f/shape (f/rand [3 3])))))
   (testing "rand values in [0 1)"
     (let [v (clj (f/rand [100]))]
       (is (every? #(and (>= % 0.0) (< % 1.0)) v))))
+  (testing "rand device" (is (some? (f/rand [2 3] :device :cpu))))
   (testing "randint shape" (is (= [2 3] (f/shape (f/randint 0 10 [2 3])))))
   (testing "randint values in [low high)"
     (let [v (clj (f/randint 3 7 [100]))]
@@ -46,6 +48,11 @@
   (testing "randint 2-arg form values in [0 high)"
     (let [v (clj (f/randint 5 [100]))]
       (is (every? #(and (>= % 0) (< % 5)) v))))
+  (testing "randint device" (is (some? (f/randint 10 [4] :device :cpu))))
+  (testing "randint low high size device" (is (some? (f/randint 3 7 [4] :device :cpu))))
+  (testing "arange device" (is (= [0 1 2] (clj (f/arange 3 :device :cpu)))))
+  (testing "arange start end device" (is (= [2 3 4] (clj (f/arange 2 5 :device :cpu)))))
+  (testing "arange start end step device" (is (= [0 2 4] (clj (f/arange 0 6 2 :device :cpu)))))
   (testing "tensor fn"
     (is (= [1.0 2.0] (clj (f/tensor [1.0 2.0]))))))
 

@@ -157,25 +157,36 @@
 
 ;; Layer constructors
 
+(defn- parse-bias-args
+  "Split args into opts map with :bias resolved from an optional leading boolean."
+  [args]
+  (if (and (seq args) (not (keyword? (first args))))
+    (apply hash-map :bias (first args) (rest args))
+    (apply hash-map args)))
+
 (defn linear
   "nn.Linear(in-features, out-features, bias=true)"
-  [in out & {:keys [bias device] :or {bias true}}]
-  (let [m (nn/Linear in out :bias bias)]
+  [in out & args]
+  (let [{:keys [bias device] :or {bias true}} (parse-bias-args args)
+        m (nn/Linear in out :bias bias)]
     (if device (f/to-device m device) m)))
 
 (defn conv2d
   "nn.Conv2d"
-  [in-ch out-ch kernel & {:keys [stride padding dilation groups bias device]
-                          :or {stride 1 padding 0 dilation 1 groups 1 bias true}}]
-  (let [m (nn/Conv2d in-ch out-ch kernel
+  [in-ch out-ch kernel & args]
+  (let [{:keys [stride padding dilation groups bias device]
+         :or {stride 1 padding 0 dilation 1 groups 1 bias true}} (parse-bias-args args)
+        m (nn/Conv2d in-ch out-ch kernel
                      :stride stride :padding padding
                      :dilation dilation :groups groups :bias bias)]
     (if device (f/to-device m device) m)))
 
 (defn conv1d
   "nn.Conv1d"
-  [in-ch out-ch kernel & {:keys [stride padding device] :or {stride 1 padding 0}}]
-  (let [m (nn/Conv1d in-ch out-ch kernel :stride stride :padding padding)]
+  [in-ch out-ch kernel & args]
+  (let [{:keys [stride padding bias device]
+         :or {stride 1 padding 0 bias true}} (parse-bias-args args)
+        m (nn/Conv1d in-ch out-ch kernel :stride stride :padding padding :bias bias)]
     (if device (f/to-device m device) m)))
 
 (defn embedding

@@ -141,12 +141,19 @@
 
 ;; Creation ops
 (defn arange
-  ([n]                          (torch/arange n))
-  ([start end]                  (torch/arange start end))
-  ([start end & {:keys [dtype device] :or {}}]
-   (cond-> (torch/arange start end)
-     dtype  (to-dtype dtype)
-     device (to-device device))))
+  ([n] (torch/arange n))
+  ([a b] (torch/arange a b))
+  ([a b c & rest]
+   (cond
+     (keyword? b)
+     (let [{:keys [dtype device]} (apply hash-map b c rest)]
+       (cond-> (torch/arange a) dtype (to-dtype dtype) device (to-device device)))
+     (keyword? c)
+     (let [{:keys [dtype device]} (apply hash-map c rest)]
+       (cond-> (torch/arange a b) dtype (to-dtype dtype) device (to-device device)))
+     :else
+     (let [{:keys [dtype device]} (when (seq rest) (apply hash-map rest))]
+       (cond-> (torch/arange a b c) dtype (to-dtype dtype) device (to-device device))))))
 
 (defn zeros [shape & {:keys [dtype device]}]
   (cond-> (torch/zeros shape)
@@ -190,16 +197,17 @@
     device (to-device device)))
 
 (defn randint
-  "torch.randint(high, shape)"
-  [high shape & {:keys [dtype device]}]
-  (cond-> (torch/randint high shape)
-    dtype  (to-dtype dtype)
-    device (to-device device)))
-
-(defn randint
   "torch.randint(high, size) or torch.randint(low, high, size)"
-  ([high size] (torch/randint high size))
-  ([low high size] (torch/randint low high size)))
+  [& args]
+  (let [pos-args (vec (take-while (complement keyword?) args))
+        opts (apply hash-map (drop (count pos-args) args))
+        {:keys [dtype device]} opts
+        result (case (count pos-args)
+                 2 (torch/randint (pos-args 0) (pos-args 1))
+                 3 (torch/randint (pos-args 0) (pos-args 1) (pos-args 2)))]
+    (cond-> result
+      dtype  (to-dtype dtype)
+      device (to-device device))))
 
 (defn tensor
   "torch.tensor(data)"
