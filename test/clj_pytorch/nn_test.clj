@@ -13,19 +13,19 @@
   (testing "linear with device"
     (is (some? (nn/linear 4 8 :device :cpu))))
   (testing "linear with bias false and device"
-    (is (some? (nn/linear 4 8 false :device :cpu))))
+    (is (some? (nn/linear 4 8 :bias false :device :cpu))))
   (testing "conv2d"
     (is (some? (nn/conv2d 1 4 3))))
   (testing "conv2d with device"
     (is (some? (nn/conv2d 1 4 3 :device :cpu))))
   (testing "conv2d with bias false and device"
-    (is (some? (nn/conv2d 1 4 3 false :device :cpu))))
+    (is (some? (nn/conv2d 1 4 3 :bias false :device :cpu))))
   (testing "conv1d"
     (is (some? (nn/conv1d 1 4 3))))
   (testing "conv1d with device"
     (is (some? (nn/conv1d 1 4 3 :device :cpu))))
   (testing "conv1d with bias false and device"
-    (is (some? (nn/conv1d 1 4 3 false :device :cpu))))
+    (is (some? (nn/conv1d 1 4 3 :bias false :device :cpu))))
   (testing "embedding"
     (is (some? (nn/embedding 10 16))))
   (testing "embedding with padding-idx"

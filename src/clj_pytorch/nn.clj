@@ -227,18 +227,23 @@
 (defn sequential
   "nn.Sequential(*layers)"
   [& layers]
-  (apply nn/Sequential layers))
+  (apply nn/Sequential (map ->py layers)))
 
 (defn module-list
   "nn.ModuleList(modules)"
   [modules]
-  (nn/ModuleList (map #(if (instance? Module %)
-                         (.py-module %) %) modules)))
+  (let [ml (nn/ModuleList)
+        unwrapped (mapv #(if (instance? Module %) (.py-module %) %) modules)]
+    (doseq [[i m] (map-indexed vector unwrapped)]
+      (py/set-attr! ml (str i) m))
+    ml))
 
 (defn module-list-seq
-  "Convert a registered ModuleList attribute into a lazy Clojure seq."
+  "Convert a registered ModuleList attribute into a Clojure seq."
   [self kw]
-  (seq (py/as-jvm (py/get-attr (->py self) (kw->str kw)))))
+  (let [ml (py/get-attr (->py self) (kw->str kw))
+        n  (builtins/len ml)]
+    (mapv #(py/get-item ml %) (range n))))
 
 (defn module-dict
   "nn.ModuleDict(mapping)"
