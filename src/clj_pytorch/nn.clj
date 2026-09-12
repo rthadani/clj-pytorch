@@ -26,7 +26,8 @@
 
 (require-python '[torch.nn :as nn]
                 '[torch.nn.functional :as F]
-                '[builtins :as builtins])
+                '[builtins :as builtins]
+                '[torchinfo :as torchinfo])
 
 ;; require-python :as creates a namespace alias, not a Clojure var, so `nn`
 ;; can't be resolved in syntax-quote. Cache torch.nn.Module as a real var.
@@ -249,6 +250,15 @@
   "nn.ModuleDict(mapping)"
   [m]
   (nn/ModuleDict m))
+
+(defn summary
+  "Print a torchinfo-style summary of a module.
+   input-size is a vector of ints for one sample, e.g. [3 224 224].
+   Requires torchinfo: pip install torchinfo."
+  [module input-size & {:keys [batch-size device] :or {batch-size 1}}]
+  (let [m (->py module)
+        m (if device (f/to-device m device) m)]
+    (torchinfo/summary m :input_size (vec (cons batch-size input-size)))))
 
 ;; Loss functions
 

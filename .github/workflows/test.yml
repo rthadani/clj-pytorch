@@ -1,0 +1,43 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.10"
+          activate-environment: pytorch
+          auto-activate-base: false
+
+      - name: Install Python dependencies
+        shell: bash -el {0}
+        run: pip install torch torchaudio torchvision torchinfo --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: DeLaGuardo/setup-clojure@13.4
+        with:
+          cli: latest
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/.gitlibs
+            .cpcache
+          key: ${{ runner.os }}-clojure-${{ hashFiles('deps.edn') }}
+          restore-keys: ${{ runner.os }}-clojure-
+
+      - name: Run tests
+        shell: bash -el {0}
+        run: clojure -M:test -m cognitect.test-runner
