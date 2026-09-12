@@ -1,0 +1,6 @@
+{:lint-as {clj-pytorch.context/no-grad        clojure.core/do
+           clj-pytorch.context/enable-grad    clojure.core/do
+           clj-pytorch.context/inference-mode clojure.core/do
+           clj-pytorch.context/autocast       clojure.core/when
+           clj-pytorch.context/no-autocast    clojure.core/when}
+ :hooks {:analyze-call {clj-pytorch.nn/defmodule hooks.clj-pytorch.nn/defmodule}}}
