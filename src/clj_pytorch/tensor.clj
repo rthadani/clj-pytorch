@@ -56,10 +56,10 @@
 
 ;; Device helpers
 (defn cuda-available? []
-  (py. torch/cuda is_available))
+  (py/call-attr torch/cuda "is_available"))
 
 (defn mps-available? []
-  (py.. torch/backends mps (is_available)))
+  (py/call-attr (py/get-attr torch/backends "mps") "is_available"))
 
 (defn device
   "Return a torch.device for the given string: \"cuda\", \"cpu\", \"mps\""

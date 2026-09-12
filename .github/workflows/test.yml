@@ -16,6 +16,12 @@ jobs:
           activate-environment: pytorch
           auto-activate-base: false
 
+      - uses: actions/cache@v4
+        id: pip-cache
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('.github/workflows/test.yml') }}
+
       - name: Install Python dependencies
         shell: bash -el {0}
         run: pip install torch torchaudio torchvision torchinfo --extra-index-url https://download.pytorch.org/whl/cpu
