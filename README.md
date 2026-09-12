@@ -96,4 +96,5 @@ clj -M:test -m cognitect.test-runner
 
 ## Projects using clj-pytorch
 
-[vlm-from-scratch] (https://github.com/rthadani/vlm-from-scratch)
+[vlm-from-scratch](https://github.com/rthadani/vlm-from-scratch)
+[andrej](https://github.com/rthadani/andrej/blob/master/src/gpt/gpt.clj)
