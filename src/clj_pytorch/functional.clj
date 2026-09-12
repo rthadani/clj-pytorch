@@ -66,6 +66,45 @@
   [tensor dim index]
   (py. tensor select dim index))
 
+(defn narrow
+  "Narrow tensor along dim from start for length elements.
+   Equivalent to tensor[start:start+length] along dim."
+  [tensor dim start length]
+  (torch/narrow tensor dim start length))
+
+(defn index-select
+  "torch.index_select(input, dim, index)"
+  [input dim index]
+  (torch/index_select input dim index))
+
+(defn- apply-dim-slice [t dim bound dim-size]
+  (cond
+    (= bound :all) t
+    (number? bound) (narrow t dim bound 1)
+    (vector? bound)
+    (let [[start end step] bound
+          start (or start 0)
+          end (or end dim-size)
+          step (or step 1)]
+      (if (= step 1)
+        (narrow t dim start (- end start))
+        (torch/index_select t dim (torch/arange start end step))))
+    :else (throw (IllegalArgumentException. (str "Invalid slice bound: " bound)))))
+
+(defn slice
+  "Slice a tensor along each dimension using a spec vector.
+   Each entry corresponds to one dimension:
+     :all            — entire dimension
+     n               — single element at n, keeps the dimension (length 1)
+     [start end]     — start to end exclusive, step 1 (uses narrow, returns a view)
+     [start end step] — start to end exclusive with step (uses index-select, returns a copy)"
+  [tensor slice-spec]
+  (let [shapes (vec (py/->jvm (py. tensor size)))]
+    (reduce-kv (fn [t dim spec]
+                 (apply-dim-slice t dim spec (nth shapes dim)))
+               tensor
+               (vec slice-spec))))
+
 (defn chunk
   "Split t into chunks equal-sized pieces along dim. Returns a Clojure seq of tensors."
   [t chunks & {:keys [dim] :or {dim 0}}]
@@ -87,6 +126,12 @@
   [t]
   (py.- t dtype))
 
+(defn tensor-get
+  "Get the scalar value at indices from a tensor of any rank.
+   (tensor-get t 1 2) is equivalent to t[1, 2] in Python."
+  [t & indices]
+  (py. (py/get-item t (builtins/tuple indices)) item))
+
 (defn numel
   "Return the total number of elements."
   [t]
@@ -96,10 +141,19 @@
 
 ;; Creation ops
 (defn arange
-  ([n]                    (torch/arange n))
-  ([start end]            (torch/arange start end))
-  ([start end step]       (torch/arange start end step))
-  ([start end step dtype] (torch/arange start end step :dtype dtype)))
+  ([n] (torch/arange n))
+  ([a b] (torch/arange a b))
+  ([a b c & rest]
+   (cond
+     (keyword? b)
+     (let [{:keys [dtype device]} (apply hash-map b c rest)]
+       (cond-> (torch/arange a) dtype (to-dtype dtype) device (to-device device)))
+     (keyword? c)
+     (let [{:keys [dtype device]} (apply hash-map c rest)]
+       (cond-> (torch/arange a b) dtype (to-dtype dtype) device (to-device device)))
+     :else
+     (let [{:keys [dtype device]} (when (seq rest) (apply hash-map rest))]
+       (cond-> (torch/arange a b c) dtype (to-dtype dtype) device (to-device device))))))
 
 (defn zeros [shape & {:keys [dtype device]}]
   (cond-> (torch/zeros shape)
@@ -123,15 +177,37 @@
 (defn full-like [t fill-value]
   (torch/full_like t fill-value))
 
+(defn manual-seed
+  "Set the random seed for reproducibility."
+  [seed]
+  (torch/manual_seed seed))
+
 (defn randn
   "torch.randn(shape)"
-  [shape]
-  (torch/randn shape))
+  [shape & {:keys [dtype device]}]
+  (cond-> (torch/randn shape)
+    dtype  (to-dtype dtype)
+    device (to-device device)))
 
 (defn rand
   "torch.rand(shape)"
-  [shape]
-  (torch/rand shape))
+  [shape & {:keys [dtype device]}]
+  (cond-> (torch/rand shape)
+    dtype  (to-dtype dtype)
+    device (to-device device)))
+
+(defn randint
+  "torch.randint(high, size) or torch.randint(low, high, size)"
+  [& args]
+  (let [pos-args (vec (take-while (complement keyword?) args))
+        opts (apply hash-map (drop (count pos-args) args))
+        {:keys [dtype device]} opts
+        result (case (count pos-args)
+                 2 (torch/randint (pos-args 0) (pos-args 1))
+                 3 (torch/randint (pos-args 0) (pos-args 1) (pos-args 2)))]
+    (cond-> result
+      dtype  (to-dtype dtype)
+      device (to-device device))))
 
 (defn tensor
   "torch.tensor(data)"
@@ -145,6 +221,11 @@
   [n]
   (torch/eye n))
 
+(defn tril
+  "torch.tril(t, diagonal=0) — lower triangular part of a matrix."
+  [t & {:keys [diagonal] :or {diagonal 0}}]
+  (torch/tril t :diagonal diagonal))
+
 ;; Math ops
 (defn matmul [a b] (torch/matmul a b))
 (defn add [a b] (torch/add a b))
@@ -155,6 +236,10 @@
 (defn le  [a b] (torch/le a b))
 (defn eq  [a b] (torch/eq a b))
 (defn ne [a b] (torch/ne a b))
+(defn allclose
+  "torch.allclose(a, b, rtol=1e-5, atol=1e-8) — true if all elements are close."
+  [a b & {:keys [rtol atol] :or {rtol 1e-5 atol 1e-8}}]
+  (torch/allclose a b :rtol rtol :atol atol))
 (defn mul [t scalar] (py. t __mul__ scalar))
 (defn div [a b] (torch/div a b))
 (defn pow [t exp] (py. t __pow__ exp))
@@ -332,11 +417,6 @@
   [input dim index]
   (torch/gather input dim index))
 
-(defn index-select
-  "torch.index_select(input, dim, index)"
-  [input dim index]
-  (torch/index_select input dim index))
-
 (defn device-of
   "Return the device a tensor lives on as a string."
   [t]
@@ -345,3 +425,4 @@
 ;; dtype constants instead of torch/int64...
 (def int64  torch/int64)
 (def float32 torch/float32)
+(def long torch/long)

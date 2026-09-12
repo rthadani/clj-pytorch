@@ -10,20 +10,42 @@
     (let [layer (nn/linear 4 8)]
       (is (some? layer))
       (is (some? (nn/parameters layer)))))
+  (testing "linear with device"
+    (is (some? (nn/linear 4 8 :device :cpu))))
+  (testing "linear with bias false and device"
+    (is (some? (nn/linear 4 8 :bias false :device :cpu))))
   (testing "conv2d"
     (is (some? (nn/conv2d 1 4 3))))
+  (testing "conv2d with device"
+    (is (some? (nn/conv2d 1 4 3 :device :cpu))))
+  (testing "conv2d with bias false and device"
+    (is (some? (nn/conv2d 1 4 3 :bias false :device :cpu))))
   (testing "conv1d"
     (is (some? (nn/conv1d 1 4 3))))
+  (testing "conv1d with device"
+    (is (some? (nn/conv1d 1 4 3 :device :cpu))))
+  (testing "conv1d with bias false and device"
+    (is (some? (nn/conv1d 1 4 3 :bias false :device :cpu))))
   (testing "embedding"
     (is (some? (nn/embedding 10 16))))
   (testing "embedding with padding-idx"
     (is (some? (nn/embedding 10 16 :padding-idx 0))))
+  (testing "embedding with device"
+    (is (some? (nn/embedding 10 16 :device "cpu"))))
+  (testing "embedding with padding-idx and device"
+    (is (some? (nn/embedding 10 16 :padding-idx 0 :device "cpu"))))
   (testing "layer-norm"
     (is (some? (nn/layer-norm [8]))))
+  (testing "layer-norm with device"
+    (is (some? (nn/layer-norm [8] :device :cpu))))
   (testing "batch-norm1d"
     (is (some? (nn/batch-norm1d 8))))
+  (testing "batch-norm1d with device"
+    (is (some? (nn/batch-norm1d 8 :device :cpu))))
   (testing "batch-norm2d"
-    (is (some? (nn/batch-norm2d 8)))))
+    (is (some? (nn/batch-norm2d 8))))
+  (testing "batch-norm2d with device"
+    (is (some? (nn/batch-norm2d 8 :device :cpu)))))
 
 (deftest activation-modules
   (testing "relu module"   (is (some? (nn/relu))))

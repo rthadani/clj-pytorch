@@ -26,11 +26,33 @@
   (testing "arange start end step" (is (= [0 2 4]    (clj (f/arange 0 6 2)))))
   (testing "eye shape" (is (= [3 3] (f/shape (f/eye 3)))))
   (testing "eye trace is n" (is (= 3.0 (f/item (f/sum (f/eye 3))))))
+  (testing "tril zeros upper triangle"
+    (let [m (f/tril (f/ones [3 3]))]
+      (is (= [3 3] (f/shape m)))
+      (is (= 0.0 (f/tensor-get m 0 1)))
+      (is (= 1.0 (f/tensor-get m 1 0)))))
+  (testing "tril with negative diagonal excludes main diagonal"
+    (let [m (f/tril (f/ones [3 3]) :diagonal -1)]
+      (is (= 0.0 (f/tensor-get m 1 1)))))
   (testing "randn shape" (is (= [4 4] (f/shape (f/randn [4 4])))))
+  (testing "randn device" (is (some? (f/randn [2 3] :device :cpu))))
   (testing "rand shape"  (is (= [3 3] (f/shape (f/rand [3 3])))))
   (testing "rand values in [0 1)"
     (let [v (clj (f/rand [100]))]
       (is (every? #(and (>= % 0.0) (< % 1.0)) v))))
+  (testing "rand device" (is (some? (f/rand [2 3] :device :cpu))))
+  (testing "randint shape" (is (= [2 3] (f/shape (f/randint 0 10 [2 3])))))
+  (testing "randint values in [low high)"
+    (let [v (clj (f/randint 3 7 [100]))]
+      (is (every? #(and (>= % 3) (< % 7)) v))))
+  (testing "randint 2-arg form values in [0 high)"
+    (let [v (clj (f/randint 5 [100]))]
+      (is (every? #(and (>= % 0) (< % 5)) v))))
+  (testing "randint device" (is (some? (f/randint 10 [4] :device :cpu))))
+  (testing "randint low high size device" (is (some? (f/randint 3 7 [4] :device :cpu))))
+  (testing "arange device" (is (= [0 1 2] (clj (f/arange 3 :device :cpu)))))
+  (testing "arange start end device" (is (= [2 3 4] (clj (f/arange 2 5 :device :cpu)))))
+  (testing "arange start end step device" (is (= [0 2 4] (clj (f/arange 0 6 2 :device :cpu)))))
   (testing "tensor fn"
     (is (= [1.0 2.0] (clj (f/tensor [1.0 2.0]))))))
 
@@ -62,6 +84,22 @@
       (let [parts (f/chunk (t 1.0 2.0 3.0 4.0 5.0 6.0) 3)]
         (is (= 3 (count parts)))
         (is (every? #(= [2] (f/shape %)) parts))))
+    (testing "narrow slices along a dim"
+      (let [data (tensor/->tensor [1.0 2.0 3.0 4.0 5.0])]
+        (is (= [1.0 2.0 3.0] (clj (f/narrow data 0 0 3))))
+        (is (= [3.0 4.0] (clj (f/narrow data 0 2 2))))))
+    (testing "slice :all keeps full dimension"
+      (let [data (tensor/->tensor [[1.0 2.0 3.0] [4.0 5.0 6.0]])]
+        (is (= [2 3] (f/shape (f/slice data [:all :all]))))))
+    (testing "slice with [start end] range"
+      (let [data (tensor/->tensor [1.0 2.0 3.0 4.0 5.0])]
+        (is (= [2.0 3.0 4.0] (clj (f/slice data [[1 4]]))))))
+    (testing "slice with step"
+      (let [data (tensor/->tensor [1.0 2.0 3.0 4.0 5.0 6.0])]
+        (is (= [1.0 3.0 5.0] (clj (f/slice data [[0 6 2]]))))))
+    (testing "slice 2d with range on first dim"
+      (let [data (tensor/->tensor [[1.0 2.0 3.0] [4.0 5.0 6.0] [7.0 8.0 9.0]])]
+        (is (= [2 3] (f/shape (f/slice data [[0 2] :all]))))))
     (testing "expand broadcasts size-1 dim"
       (let [row (tensor/->tensor [[1.0 2.0 3.0]])]
         (is (= [4 3] (f/shape (f/expand row [4 3]))))))))
@@ -128,7 +166,13 @@
     (testing "logical-and"
       (let [x (t 1.0 0.0 1.0)
             y (t 1.0 1.0 0.0)]
-        (is (= [true false false] (mapv boolean (clj (f/logical-and x y)))))))))
+        (is (= [true false false] (mapv boolean (clj (f/logical-and x y)))))))
+    (testing "allclose identical tensors"
+      (is (boolean (f/allclose a a))))
+    (testing "allclose within tolerance"
+      (is (boolean (f/allclose a (t 1.0 2.0000001 3.0)))))
+    (testing "allclose returns false for different tensors"
+      (is (not (boolean (f/allclose a b)))))))
 
 (deftest stacking-ops
   (let [a (t 1.0 2.0)
@@ -190,7 +234,12 @@
     (testing "multinomial samples correct count"
       (let [probs  (f/softmax (t 1.0 2.0 3.0) :dim -1)
             sample (f/multinomial probs 2 :replacement true)]
-        (is (= [2] (f/shape sample)))))))
+        (is (= [2] (f/shape sample)))))
+    (testing "tensor-get 1D returns scalar"
+      (is (= 2.0 (f/tensor-get (t 1.0 2.0 3.0) 1))))
+    (testing "tensor-get 2D returns scalar"
+      (let [m (tensor/->tensor [[1.0 2.0] [3.0 4.0]])]
+        (is (= 3.0 (f/tensor-get m 1 0)))))))
 
 (deftest masking-ops
   (let [a    (t 1.0 2.0 3.0 4.0)

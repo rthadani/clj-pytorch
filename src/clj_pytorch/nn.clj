@@ -157,45 +157,63 @@
 
 ;; Layer constructors
 
+(defn- parse-bias-args
+  "Split args into opts map with :bias resolved from an optional leading boolean."
+  [args]
+  (if (and (seq args) (not (keyword? (first args))))
+    (apply hash-map :bias (first args) (rest args))
+    (apply hash-map args)))
+
 (defn linear
   "nn.Linear(in-features, out-features, bias=true)"
-  [in out & {:keys [bias] :or {bias true}}]
-  (nn/Linear in out :bias bias))
+  [in out & args]
+  (let [{:keys [bias device] :or {bias true}} (parse-bias-args args)
+        m (nn/Linear in out :bias bias)]
+    (if device (f/to-device m device) m)))
 
 (defn conv2d
   "nn.Conv2d"
-  [in-ch out-ch kernel & {:keys [stride padding dilation groups bias]
-                          :or {stride 1 padding 0 dilation 1 groups 1 bias true}}]
-  (nn/Conv2d in-ch out-ch kernel
-             :stride stride :padding padding
-             :dilation dilation :groups groups :bias bias))
+  [in-ch out-ch kernel & args]
+  (let [{:keys [stride padding dilation groups bias device]
+         :or {stride 1 padding 0 dilation 1 groups 1 bias true}} (parse-bias-args args)
+        m (nn/Conv2d in-ch out-ch kernel
+                     :stride stride :padding padding
+                     :dilation dilation :groups groups :bias bias)]
+    (if device (f/to-device m device) m)))
 
 (defn conv1d
   "nn.Conv1d"
-  [in-ch out-ch kernel & {:keys [stride padding] :or {stride 1 padding 0}}]
-  (nn/Conv1d in-ch out-ch kernel :stride stride :padding padding))
+  [in-ch out-ch kernel & args]
+  (let [{:keys [stride padding bias device]
+         :or {stride 1 padding 0 bias true}} (parse-bias-args args)
+        m (nn/Conv1d in-ch out-ch kernel :stride stride :padding padding :bias bias)]
+    (if device (f/to-device m device) m)))
 
 (defn embedding
   "nn.Embedding(num-embeddings, embedding-dim, padding-idx=nil)"
-  [num-embeddings embed-dim & {:keys [padding-idx]}]
-  (if padding-idx
-    (nn/Embedding num-embeddings embed-dim :padding_idx padding-idx)
-    (nn/Embedding num-embeddings embed-dim)))
+  [num-embeddings embed-dim & {:keys [padding-idx device]}]
+  (let [m (if padding-idx
+            (nn/Embedding num-embeddings embed-dim :padding_idx padding-idx)
+            (nn/Embedding num-embeddings embed-dim))]
+    (if device (f/to-device m device) m)))
 
 (defn layer-norm
   "nn.LayerNorm(normalized-shape, eps=1e-6)"
-  [normalized-shape & {:keys [eps] :or {eps 1e-6}}]
-  (nn/LayerNorm normalized-shape :eps eps))
+  [normalized-shape & {:keys [eps device] :or {eps 1e-6}}]
+  (let [m (nn/LayerNorm normalized-shape :eps eps)]
+    (if device (f/to-device m device) m)))
 
 (defn batch-norm1d
   "nn.BatchNorm1d"
-  [num-features & {:keys [eps momentum] :or {eps 1e-5 momentum 0.1}}]
-  (nn/BatchNorm1d num-features :eps eps :momentum momentum))
+  [num-features & {:keys [eps momentum device] :or {eps 1e-5 momentum 0.1}}]
+  (let [m (nn/BatchNorm1d num-features :eps eps :momentum momentum)]
+    (if device (f/to-device m device) m)))
 
 (defn batch-norm2d
   "nn.BatchNorm2d"
-  [num-features & {:keys [eps momentum] :or {eps 1e-5 momentum 0.1}}]
-  (nn/BatchNorm2d num-features :eps eps :momentum momentum))
+  [num-features & {:keys [eps momentum device] :or {eps 1e-5 momentum 0.1}}]
+  (let [m (nn/BatchNorm2d num-features :eps eps :momentum momentum)]
+    (if device (f/to-device m device) m)))
 
 (defn relu [] (nn/ReLU))
 (defn gelu [] (nn/GELU))
@@ -209,18 +227,23 @@
 (defn sequential
   "nn.Sequential(*layers)"
   [& layers]
-  (apply nn/Sequential layers))
+  (apply nn/Sequential (map ->py layers)))
 
 (defn module-list
   "nn.ModuleList(modules)"
   [modules]
-  (nn/ModuleList (map #(if (instance? Module %)
-                         (.py-module %) %) modules)))
+  (let [ml (nn/ModuleList)
+        unwrapped (mapv #(if (instance? Module %) (.py-module %) %) modules)]
+    (doseq [[i m] (map-indexed vector unwrapped)]
+      (py/set-attr! ml (str i) m))
+    ml))
 
 (defn module-list-seq
-  "Convert a registered ModuleList attribute into a lazy Clojure seq."
+  "Convert a registered ModuleList attribute into a Clojure seq."
   [self kw]
-  (seq (py/as-jvm (py/get-attr (->py self) (kw->str kw)))))
+  (let [ml (py/get-attr (->py self) (kw->str kw))
+        n  (builtins/len ml)]
+    (mapv #(py/get-item ml %) (range n))))
 
 (defn module-dict
   "nn.ModuleDict(mapping)"

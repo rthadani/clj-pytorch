@@ -78,6 +78,16 @@ To access a sublayer inside `forward`:
             :val-batches   (fn [] (->batches val-loader))})
 ```
 
+## clj-kondo
+
+The library ships clj-kondo config so `defmodule` and the context macros (`no-grad`, `inference-mode`, etc.) are understood by your linter. Run this once after adding the dependency:
+
+```sh
+clj-kondo --copy-configs --dependencies --lint "$(clj -Spath)"
+```
+
+That copies the hook and config into your project's `.clj-kondo/` directory. After that, `defmodule` definitions show up as real vars and the context macros don't flag unresolved body forms.
+
 ## Running tests
 
 ```sh
