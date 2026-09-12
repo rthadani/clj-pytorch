@@ -2,7 +2,7 @@
 
 A Clojure wrapper around PyTorch via [libpython-clj](https://github.com/clj-python/libpython-clj). This is basically a collection of all the PyTorch patterns I kept rewriting over the past three years: tensor ops, training loops, dataloaders, inference utilities, bundled into something reusable. If you stumble across this and find it useful, awesome.
 
-Requires a Python environment with PyTorch installed and libpython-clj pointing at it. Tested with `torch 2.9.1+cu130`, `torchaudio 2.9.1+cu130`, and `torchvision 0.24.1+cu130`.
+Requires a Python environment with PyTorch installed and libpython-clj pointing at it. Tested with `torch 2.9.1+cu130`, `torchaudio 2.9.1+cu130`, and `torchvision 0.24.1+cu130`. Also requires `torchinfo` for `nn/summary`: `pip install torchinfo`.
 
 [![Clojars Project](https://img.shields.io/clojars/v/io.github.rthadani/clj-pytorch.svg)](https://clojars.org/io.github.rthadani/clj-pytorch)
 
