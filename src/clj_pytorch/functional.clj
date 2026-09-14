@@ -426,3 +426,47 @@
 (def int64  torch/int64)
 (def float32 torch/float32)
 (def long torch/long)
+
+(defn neg
+  "Negate a tensor element-wise."
+  [t]
+  (torch/neg t))
+
+(defn square
+  "Element-wise square."
+  [t]
+  (py. t square))
+
+(defn repeat-interleave
+  "Repeat elements of a tensor n times along dim."
+  [t n & {:keys [dim]}]
+  (if dim
+    (py. t repeat_interleave n :dim dim)
+    (py. t repeat_interleave n)))
+
+(defn outer
+  "torch.outer(a, b) — outer product of two 1D tensors."
+  [a b]
+  (torch/outer a b))
+
+(defn topk
+  "torch.topk(t, k). Returns {:values ... :indices ...}."
+  [t k]
+  (let [result (torch/topk t k)]
+    {:values  (py.- result values)
+     :indices (py.- result indices)}))
+
+(defn rms-norm
+  "F.rms_norm(x, normalized-shape). RMSNorm with no learnable parameters."
+  [x normalized-shape]
+  (F/rms_norm x normalized-shape))
+
+(defn scaled-dot-product-attention
+  "F.scaled_dot_product_attention(q, k, v, is_causal=false)."
+  [q k v & {:keys [is-causal] :or {is-causal false}}]
+  (F/scaled_dot_product_attention q k v :is_causal is-causal))
+
+(defn cross-entropy-f
+  "F.cross_entropy(logits, targets, ignore_index=-100, reduction='mean')."
+  [logits targets & {:keys [ignore-index reduction] :or {ignore-index -100 reduction "mean"}}]
+  (F/cross_entropy logits targets :ignore_index ignore-index :reduction reduction))

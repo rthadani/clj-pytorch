@@ -291,3 +291,59 @@
     (let [a (t 4.0 6.0 8.0)]
       (f/div! a 2.0)
       (is (= [2.0 3.0 4.0] (clj a))))))
+
+(deftest element-wise-ops
+  (let [a (t 1.0 -2.0 3.0)]
+    (testing "neg negates all elements"
+      (is (= [-1.0 2.0 -3.0] (clj (f/neg a)))))
+    (testing "square squares all elements"
+      (is (= [1.0 4.0 9.0] (clj (f/square a)))))
+    (testing "->float returns float32 tensor"
+      (let [long-t (tensor/->long (t 1.0 2.0 3.0))]
+        (is (some? (tensor/->float long-t)))
+        (is (= [3] (f/shape (tensor/->float long-t))))))))
+
+(deftest repeat-and-outer
+  (testing "repeat-interleave repeats each element n times"
+    (is (= [1.0 1.0 2.0 2.0 3.0 3.0] (clj (f/repeat-interleave (t 1.0 2.0 3.0) 2)))))
+  (testing "repeat-interleave along dim"
+    (let [m (tensor/->tensor [[1.0 2.0] [3.0 4.0]])]
+      (is (= [4 2] (f/shape (f/repeat-interleave m 2 :dim 0))))))
+  (testing "outer product shape"
+    (is (= [3 4] (f/shape (f/outer (t 1.0 2.0 3.0) (t 1.0 2.0 3.0 4.0))))))
+  (testing "outer product values"
+    (is (= [2.0 6.0] (clj (f/flatten (f/outer (t 1.0 3.0) (t 2.0)) 0))))))
+
+(deftest topk-test
+  (let [result (f/topk (t 3.0 1.0 4.0 1.0 5.0 9.0 2.0) 3)]
+    (testing "topk returns values and indices keys"
+      (is (contains? result :values))
+      (is (contains? result :indices)))
+    (testing "topk values are the top k"
+      (is (= [9.0 5.0 4.0] (clj (:values result)))))
+    (testing "topk indices point to correct positions"
+      (is (= [5 4 2] (clj (:indices result)))))))
+
+(deftest loss-and-attention
+  (testing "cross-entropy-f scalar output"
+    (let [logits  (tensor/->tensor [[2.0 1.0 0.0] [0.0 1.0 2.0]])
+          targets (tensor/->tensor [0 2])]
+      (is (some? (f/cross-entropy-f logits (f/to-dtype targets f/int64))))))
+  (testing "cross-entropy-f reduction none gives per-sample losses"
+    (let [logits  (tensor/->tensor [[2.0 1.0 0.0] [0.0 1.0 2.0]])
+          targets (tensor/->tensor [0 2])]
+      (is (= [2] (f/shape (f/cross-entropy-f logits (f/to-dtype targets f/int64) :reduction "none"))))))
+  (testing "scaled-dot-product-attention output shape"
+    (let [q (f/randn [2 4 8])
+          k (f/randn [2 4 8])
+          v (f/randn [2 4 8])]
+      (is (= [2 4 8] (f/shape (f/scaled-dot-product-attention q k v))))))
+  (testing "rms-norm output shape matches input"
+    (let [x (f/randn [2 4])]
+      (is (= [2 4] (f/shape (f/rms-norm x [4]))))))
+  (testing "manual-seed produces reproducible output"
+    (f/manual-seed 42)
+    (let [a (clj (f/randn [3]))]
+      (f/manual-seed 42)
+      (let [b (clj (f/randn [3]))]
+        (is (= a b))))))
