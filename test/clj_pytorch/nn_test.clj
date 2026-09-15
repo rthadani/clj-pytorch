@@ -141,3 +141,11 @@
           sd     (nn/state-dict layer1)]
       (nn/load-state-dict! layer2 sd)
       (is (some? sd)))))
+
+(deftest summary-test
+  (testing "summary returns a result for a simple module"
+    (let [net (TwoLayerNet 4 8 2)]
+      (is (some? (nn/summary net [4])))))
+  (testing "summary with explicit batch size"
+    (let [net (TwoLayerNet 4 8 2)]
+      (is (some? (nn/summary net [4] :batch-size 4))))))
