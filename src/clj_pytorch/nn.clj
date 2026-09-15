@@ -254,11 +254,16 @@
 (defn summary
   "Print a torchinfo-style summary of a module.
    input-size is a vector of ints for one sample, e.g. [3 224 224].
+   Pass :dtypes as a vector of torch dtype objects when the model expects
+   non-float input, e.g. :dtypes [torch/long] for token indices.
    Requires torchinfo: pip install torchinfo."
-  [module input-size & {:keys [batch-size device] :or {batch-size 1}}]
+  [module input-size & {:keys [batch-size device dtypes] :or {batch-size 1}}]
   (let [m (->py module)
-        m (if device (f/to-device m device) m)]
-    (torchinfo/summary m :input_size (vec (cons batch-size input-size)))))
+        m (if device (f/to-device m device) m)
+        sz (vec (cons batch-size input-size))]
+    (if dtypes
+      (torchinfo/summary m :input_size sz :dtypes (builtins/list dtypes))
+      (torchinfo/summary m :input_size sz))))
 
 ;; Loss functions
 
