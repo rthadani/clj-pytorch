@@ -9,6 +9,8 @@
 
   Layer constructors:
     linear, conv2d, conv1d, embedding, layer-norm, batch-norm,
+    transformer-encoder-layer, transformer-encoder,
+    transformer-decoder-layer, transformer-decoder,
     dropout, relu, gelu, sigmoid, tanh, sequential, module-list
 
   Container helpers:
@@ -214,6 +216,52 @@
   "nn.BatchNorm2d"
   [num-features & {:keys [eps momentum device] :or {eps 1e-5 momentum 0.1}}]
   (let [m (nn/BatchNorm2d num-features :eps eps :momentum momentum)]
+    (if device (f/to-device m device) m)))
+
+(defn transformer-encoder-layer
+  "nn.TransformerEncoderLayer(d-model, nhead, ...)"
+  [d-model nhead & {:keys [dim-feedforward dropout activation layer-norm-eps batch-first norm-first bias device]
+                    :or {dim-feedforward 2048 dropout 0.1 activation "relu"
+                         layer-norm-eps 1e-5 batch-first false norm-first false bias true}}]
+  (let [m (nn/TransformerEncoderLayer d-model nhead
+                                      :dim_feedforward dim-feedforward
+                                      :dropout dropout
+                                      :activation activation
+                                      :layer_norm_eps layer-norm-eps
+                                      :batch_first batch-first
+                                      :norm_first norm-first
+                                      :bias bias)]
+    (if device (f/to-device m device) m)))
+
+(defn transformer-decoder-layer
+  "nn.TransformerDecoderLayer(d-model, nhead, ...)"
+  [d-model nhead & {:keys [dim-feedforward dropout activation layer-norm-eps batch-first norm-first bias device]
+                    :or {dim-feedforward 2048 dropout 0.1 activation "relu"
+                         layer-norm-eps 1e-5 batch-first false norm-first false bias true}}]
+  (let [m (nn/TransformerDecoderLayer d-model nhead
+                                      :dim_feedforward dim-feedforward
+                                      :dropout dropout
+                                      :activation activation
+                                      :layer_norm_eps layer-norm-eps
+                                      :batch_first batch-first
+                                      :norm_first norm-first
+                                      :bias bias)]
+    (if device (f/to-device m device) m)))
+
+(defn transformer-encoder
+  "nn.TransformerEncoder(encoder-layer, num-layers, norm=nil)"
+  [encoder-layer num-layers & {:keys [norm device]}]
+  (let [m (if norm
+            (nn/TransformerEncoder (->py encoder-layer) num-layers :norm (->py norm))
+            (nn/TransformerEncoder (->py encoder-layer) num-layers))]
+    (if device (f/to-device m device) m)))
+
+(defn transformer-decoder
+  "nn.TransformerDecoder(decoder-layer, num-layers, norm=nil)"
+  [decoder-layer num-layers & {:keys [norm device]}]
+  (let [m (if norm
+            (nn/TransformerDecoder (->py decoder-layer) num-layers :norm (->py norm))
+            (nn/TransformerDecoder (->py decoder-layer) num-layers))]
     (if device (f/to-device m device) m)))
 
 (defn relu [] (nn/ReLU))

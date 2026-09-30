@@ -45,7 +45,27 @@
   (testing "batch-norm2d"
     (is (some? (nn/batch-norm2d 8))))
   (testing "batch-norm2d with device"
-    (is (some? (nn/batch-norm2d 8 :device :cpu)))))
+    (is (some? (nn/batch-norm2d 8 :device :cpu))))
+  (testing "transformer-encoder-layer"
+    (is (some? (nn/transformer-encoder-layer 64 8))))
+  (testing "transformer-encoder-layer with options"
+    (is (some? (nn/transformer-encoder-layer 64 8 :dim-feedforward 256 :dropout 0.0 :batch-first true))))
+  (testing "transformer-encoder-layer with device"
+    (is (some? (nn/transformer-encoder-layer 64 8 :device :cpu))))
+  (testing "transformer-decoder-layer"
+    (is (some? (nn/transformer-decoder-layer 64 8))))
+  (testing "transformer-decoder-layer with options"
+    (is (some? (nn/transformer-decoder-layer 64 8 :dim-feedforward 256 :dropout 0.0 :batch-first true))))
+  (testing "transformer-decoder-layer with device"
+    (is (some? (nn/transformer-decoder-layer 64 8 :device :cpu))))
+  (testing "transformer-encoder stacks N layers"
+    (is (some? (nn/transformer-encoder (nn/transformer-encoder-layer 64 8) 4))))
+  (testing "transformer-encoder with norm"
+    (is (some? (nn/transformer-encoder (nn/transformer-encoder-layer 64 8) 2 :norm (nn/layer-norm [64])))))
+  (testing "transformer-decoder stacks N layers"
+    (is (some? (nn/transformer-decoder (nn/transformer-decoder-layer 64 8) 4))))
+  (testing "transformer-decoder with norm"
+    (is (some? (nn/transformer-decoder (nn/transformer-decoder-layer 64 8) 2 :norm (nn/layer-norm [64]))))))
 
 (deftest activation-modules
   (testing "relu module"   (is (some? (nn/relu))))
