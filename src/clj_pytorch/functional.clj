@@ -422,6 +422,16 @@
   [t other]
   (py. t div_ other))
 
+(defn add!
+  "In-place addition: t.add_(other). Mutates t, returns t."
+  [t other]
+  (py. t add_ other))
+
+(defn grad
+  "The accumulated gradient of t, or nil if backward has not populated it."
+  [t]
+  (py.- t grad))
+
 (defn gather
   "torch.gather(input, dim, index)"
   [input dim index]

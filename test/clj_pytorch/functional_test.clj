@@ -1,7 +1,7 @@
 (ns clj-pytorch.functional-test
   (:require [clojure.test :refer :all]
             [clojure.string :as str]
-            [libpython-clj2.python :refer [py.-]]
+            [libpython-clj2.python :refer [py.-] :as py]
             [clj-pytorch.functional :as f]
             [clj-pytorch.tensor     :as tensor]))
 
@@ -90,6 +90,15 @@
             out  (f/index data idx)]
         (is (= [2 2 2] (f/shape out)))
         (is (= [5.0 6.0] (clj (f/select (f/select out 0 0) 0 1))))))
+    (testing "add! mutates in place"
+      (let [data (tensor/->tensor [1.0 2.0])]
+        (f/add! data (tensor/->tensor [10.0 20.0]))
+        (is (= [11.0 22.0] (clj data)))))
+    (testing "grad is nil before backward and populated after"
+      (let [w (tensor/requires-grad! (tensor/->tensor [1.0 2.0]) true)]
+        (is (nil? (f/grad w)))
+        (py/call-attr (f/sum (f/mul w 3.0)) "backward")
+        (is (= [3.0 3.0] (clj (f/grad w))))))
     (testing "unbind splits along a dim and drops it"
       (let [data  (tensor/->tensor [[1.0 2.0 3.0] [4.0 5.0 6.0]])
             rows  (f/unbind data)
