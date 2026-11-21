@@ -84,6 +84,20 @@
       (let [parts (f/chunk (t 1.0 2.0 3.0 4.0 5.0 6.0) 3)]
         (is (= 3 (count parts)))
         (is (every? #(= [2] (f/shape %)) parts))))
+    (testing "index with a multi-dim integer tensor"
+      (let [data (tensor/->tensor [[1.0 2.0] [3.0 4.0] [5.0 6.0]])
+            idx  (tensor/->tensor [[0 2] [1 1]])
+            out  (f/index data idx)]
+        (is (= [2 2 2] (f/shape out)))
+        (is (= [5.0 6.0] (clj (f/select (f/select out 0 0) 0 1))))))
+    (testing "unbind splits along a dim and drops it"
+      (let [data  (tensor/->tensor [[1.0 2.0 3.0] [4.0 5.0 6.0]])
+            rows  (f/unbind data)
+            cols  (f/unbind data :dim 1)]
+        (is (= 2 (count rows)))
+        (is (= [1.0 2.0 3.0] (clj (first rows))))
+        (is (= 3 (count cols)))
+        (is (= [1.0 4.0] (clj (first cols))))))
     (testing "narrow slices along a dim"
       (let [data (tensor/->tensor [1.0 2.0 3.0 4.0 5.0])]
         (is (= [1.0 2.0 3.0] (clj (f/narrow data 0 0 3))))
