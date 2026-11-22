@@ -72,6 +72,11 @@
   [tensor dim start length]
   (torch/narrow tensor dim start length))
 
+(defn index
+  "t[idx] for an integer tensor idx. The result has the shape of idx followed by the remaining dims of t."
+  [t idx]
+  (py/get-item t idx))
+
 (defn index-select
   "torch.index_select(input, dim, index)"
   [input dim index]
@@ -109,6 +114,11 @@
   "Split t into chunks equal-sized pieces along dim. Returns a Clojure seq of tensors."
   [t chunks & {:keys [dim] :or {dim 0}}]
   (torch/chunk t chunks :dim dim))
+
+(defn unbind
+  "Remove dim and return the slices along it as a Clojure vector of tensors."
+  [t & {:keys [dim] :or {dim 0}}]
+  (vec (torch/unbind t :dim dim)))
 
 ;; Tensor metadata
 (defn size
@@ -411,6 +421,16 @@
   "In-place division: t.div_(other). Mutates t, returns t."
   [t other]
   (py. t div_ other))
+
+(defn add!
+  "In-place addition: t.add_(other). Mutates t, returns t."
+  [t other]
+  (py. t add_ other))
+
+(defn grad
+  "The accumulated gradient of t, or nil if backward has not populated it."
+  [t]
+  (py.- t grad))
 
 (defn gather
   "torch.gather(input, dim, index)"
