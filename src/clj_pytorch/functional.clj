@@ -11,6 +11,7 @@
             [libpython-clj2.require :refer [require-python]]))
 
 (require-python '[torch :as torch]
+                '[torch.nn.init :as init]
                 '[torch.nn.functional :as F]
                 '[builtins :as builtins])
 
@@ -230,6 +231,17 @@
   "torch.eye(n)"
   [n]
   (torch/eye n))
+
+(defn kaiming-normal!
+  "torch.nn.init.kaiming_normal_(t, a=0, mode='fan_in', nonlinearity='leaky_relu', generator=nil).
+  Fills t in place from a normal distribution with std gain / sqrt(fan) and returns t.
+  Fans follow PyTorch's convention for a (fan-out, fan-in) weight, so mode \"fan_in\"
+  uses the second dimension. A tensor with fewer than two dimensions throws."
+  [t & {:keys [a mode nonlinearity generator]
+        :or   {a 0 mode "fan_in" nonlinearity "leaky_relu"}}]
+  (if generator
+    (init/kaiming_normal_ t :a a :mode mode :nonlinearity nonlinearity :generator generator)
+    (init/kaiming_normal_ t :a a :mode mode :nonlinearity nonlinearity)))
 
 (defn tril
   "torch.tril(t, diagonal=0) — lower triangular part of a matrix."

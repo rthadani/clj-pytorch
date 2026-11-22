@@ -57,6 +57,22 @@
     (is (= [1.0 2.0] (clj (f/tensor [1.0 2.0]))))))
 
 
+(deftest kaiming-normal-init
+  (let [std (fn [t] (f/item (py/call-attr t "std")))]
+    (testing "defaults to fan_in with leaky_relu gain, in place"
+      (let [w   (f/zeros [1000 100])
+            out (f/kaiming-normal! w)]
+        (is (true? (py/->jvm (f/allclose w out))))
+        (is (= [1000 100] (f/shape w)))
+        (is (< 0.13 (std w) 0.15))))
+    (testing "fan_out mode uses the first dimension"
+      (is (< 0.04 (std (f/kaiming-normal! (f/zeros [1000 100]) :mode "fan_out")) 0.05)))
+    (testing "tanh nonlinearity uses gain 5/3"
+      (is (< 0.155 (std (f/kaiming-normal! (f/zeros [1000 100]) :nonlinearity "tanh")) 0.18)))
+    (testing "works on a tensor that requires grad"
+      (let [w (tensor/requires-grad! (f/zeros [10 10]) true)]
+        (is (some? (f/kaiming-normal! w)))))))
+
 (deftest metadata-ops
   (let [t2d (tensor/->tensor [[1.0 2.0 3.0] [4.0 5.0 6.0]])]
     (testing "shape" (is (= [2 3] (f/shape t2d))))
