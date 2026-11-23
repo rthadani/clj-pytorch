@@ -290,6 +290,24 @@
   ([t]        (py. t min))
   ([t dim]    (py. t min dim)))
 
+(defn std
+  "Unbiased standard deviation, like t.std(dim, keepdim=...)."
+  ([t]        (py. t std))
+  ([t dim kd] (py. t std dim :keepdim kd)))
+
+(defn variance
+  "Unbiased variance, like t.var(dim, keepdim=...). Named variance because var is a special form."
+  ([t]        (py. t var))
+  ([t dim kd] (py. t var dim :keepdim kd)))
+
+(defn histogram
+  "torch.histogram(t, bins=100, density=false). Returns {:hist ... :bin-edges ...}.
+  The input must not require grad, so detach it first."
+  [t & {:keys [bins density] :or {bins 100 density false}}]
+  (let [result (torch/histogram t :bins bins :density density)]
+    {:hist      (py.- result hist)
+     :bin-edges (py.- result bin_edges)}))
+
 (defn norm
   ([t]         (py. t norm))
   ([t p]       (py. t norm p))

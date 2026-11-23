@@ -73,6 +73,20 @@
       (let [w (tensor/requires-grad! (f/zeros [10 10]) true)]
         (is (some? (f/kaiming-normal! w)))))))
 
+(deftest statistics-ops
+  (let [data (tensor/->tensor [[1.0 2.0] [3.0 6.0]])]
+    (testing "std is unbiased and keeps dims"
+      (is (= [1 2] (f/shape (f/std data 0 true))))
+      (is (every? true? (map #(< (Math/abs (- %1 %2)) 1e-5)
+                             [1.41421356 2.82842712]
+                             (first (tensor/->clj (f/std data 0 true)))))))
+    (testing "variance is unbiased"
+      (is (= [2.0 8.0] (mapv double (first (tensor/->clj (f/variance data 0 true))))))))
+  (testing "histogram counts and edges"
+    (let [{:keys [hist bin-edges]} (f/histogram (tensor/->tensor [0.0 1.0 1.0 2.0]) :bins 2)]
+      (is (= [1.0 3.0] (mapv double (tensor/->clj hist))))
+      (is (= 3 (count (tensor/->clj bin-edges)))))))
+
 (deftest metadata-ops
   (let [t2d (tensor/->tensor [[1.0 2.0 3.0] [4.0 5.0 6.0]])]
     (testing "shape" (is (= [2 3] (f/shape t2d))))
