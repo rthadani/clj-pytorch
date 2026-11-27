@@ -377,6 +377,13 @@
     (testing "topk indices point to correct positions"
       (is (= [5 4 2] (clj (:indices result)))))))
 
+(deftest one-hot-encoding
+  (testing "one-hot appends a class dimension"
+    (is (= [2 3] (f/shape (f/one-hot (tensor/->tensor [0 2]) 3)))))
+  (testing "one-hot sets only the class index"
+    (let [m (f/one-hot (tensor/->tensor [0 2]) 3)]
+      (is (= [1 0 0 0 0 1] (clj (f/flatten m 0)))))))
+
 (deftest loss-and-attention
   (testing "cross-entropy-f scalar output"
     (let [logits  (tensor/->tensor [[2.0 1.0 0.0] [0.0 1.0 2.0]])

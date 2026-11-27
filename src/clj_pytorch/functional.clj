@@ -462,6 +462,11 @@
   [t]
   (py.- t grad))
 
+(defn one-hot
+  "F.one_hot(t, num-classes). t must be int64 and so is the result."
+  [t num-classes]
+  (F/one_hot t num-classes))
+
 (defn gather
   "torch.gather(input, dim, index)"
   [input dim index]
